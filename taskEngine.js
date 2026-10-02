@@ -142,6 +142,15 @@ const TaskEngine = {
         });
       }
     });
+    // งานตรวจเฉพาะชนิดพืช (ฟิลด์เสริม extraChecks ใน Plant Database)
+    (sp && sp.extraChecks || []).forEach(x => {
+      if (d >= x.startDay && (d - x.startDay) % x.every === 0) {
+        mk('x-' + x.key, x.type || 'GENERAL', {
+          title: x.title.replace('{name}', n), description: x.description || '', steps: x.steps || [],
+          recurrence: x.every === 1 ? 'ทุกวัน' : x.every === 7 ? 'สัปดาห์ละครั้ง' : `ทุก ${x.every} วัน`,
+        });
+      }
+    });
     if (plant.flowering && sp && sp.deadhead && d % 7 === 5) {
       mk('deadhead', 'PRUNING', {
         title: `เด็ดดอกที่โรย (${n})`, description: 'ช่วยให้ต้นออกดอกใหม่ต่อเนื่อง',
@@ -176,7 +185,7 @@ const TaskEngine = {
       const orchid = sp && sp.medium === 'orchid';
       out.push(this.make(plant, sp, 'plant', 'PLANTING', due, {
         title: `ปลูก${n}`, description: 'ทำทีละขั้น ติ๊กให้ครบแล้วกดเสร็จ',
-        steps: orchid
+        steps: sp && sp.plantingSteps ? sp.plantingSteps : orchid
           ? ['เตรียมกระถางหรือกระเช้าสำหรับกล้วยไม้', 'ใส่กาบมะพร้าวหรือถ่าน', 'วางต้นให้โคนไม่จมวัสดุปลูก', 'ใช้ลวดหรือไม้หลักยึดต้นให้แน่น', 'รดน้ำให้ชุ่ม']
           : ['เตรียมหลุมหรือกระถาง (กระถางต้องมีรูระบายน้ำ)', 'ใส่ดินผสมหรือวัสดุปลูก', 'ค่อย ๆ ถอดต้นออกจากถุง ระวังรากแตก', 'วางต้นให้โคนอยู่ระดับเดียวกับผิวดิน', 'กลบดินและกดเบา ๆ รอบโคน', 'รดน้ำครั้งแรกให้ชุ่ม'],
         checklist: true,

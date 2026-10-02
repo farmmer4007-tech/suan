@@ -70,6 +70,7 @@ Views.plant = {
       <button class="btn primary" data-act="water-check" data-id="${p.id}">💧 ตรวจดิน</button>
       <button class="btn" data-act="doctor-for" data-id="${p.id}">🆘 มีปัญหา?</button></div>` : '';
 
+    const spWarn = sp && sp.warnings && sp.warnings.length ? `<div class="warn danger" role="note"><span aria-hidden="true">⚠️</span><div style="display:grid;gap:4px"><b>ข้อควรระวังสำหรับ${esc(sp.nameTh)}</b>${sp.warnings.map(w => `<span class="small">${esc(w)}</span>`).join('')}</div></div>` : '';
     const tabs = [['overview', 'ภาพรวม'], ['care', 'การดูแล'], ['fert', 'ปุ๋ย'], ['photos', 'รูป'], ['history', 'ประวัติ']];
     const tabBar = `<div class="tabs" role="tablist" aria-label="ข้อมูลต้นไม้">${tabs.map(([k, l]) => `<button class="tab" role="tab" id="tab-${k}" aria-selected="${tab === k}" aria-controls="tabpanel" data-act="detail-tab" data-v="${k}">${l}</button>`).join('')}</div>`;
 
@@ -87,9 +88,11 @@ Views.plant = {
           ${mm ? `<div class="warn"><span aria-hidden="true">⚠️</span><span>${esc(mm)}</span></div>` : ''}</div>
         ${C.WateringCard(p, sp)}
         <div class="card"><div class="care-row"><div class="care-ico green" aria-hidden="true">🟫</div><div style="display:grid;gap:4px"><h3>ดิน</h3><p class="small">${esc(sp.soilGuideline)}</p>${p.potSize ? `<p class="tiny">ขนาดกระถาง: ${esc((POT_SIZES.find(x => x.v === p.potSize) || {}).label || '')}</p>` : ''}</div></div></div>
+        ${sp.careNotes ? `<div class="card"><div class="care-row"><div class="care-ico green" aria-hidden="true">🌿</div><div style="display:grid;gap:4px"><h3>การดูแล</h3><p class="small">${esc(sp.careNotes)}</p></div></div></div>` : ''}
+        <div class="card"><div class="care-row"><div class="care-ico pink" aria-hidden="true">🌸</div><div style="display:grid;gap:4px"><h3>การออกดอก</h3><p class="small">${esc(sp.floweringNotes)}</p></div></div></div>
         ${sp.temperatureNotes ? `<div class="card"><div class="care-row"><div class="care-ico pink" aria-hidden="true">🌡️</div><div style="display:grid;gap:4px"><h3>อากาศ</h3><p class="small">${esc(sp.temperatureNotes)}</p></div></div></div>` : ''}
         <div class="card"><div class="care-row"><div class="care-ico pink" aria-hidden="true">✂️</div><div style="display:grid;gap:4px"><h3>การตัดแต่ง</h3><p class="small">${esc(sp.pruningNotes)}</p></div></div></div>
-        <div class="card"><div class="care-row"><div class="care-ico green" aria-hidden="true">🐛</div><div style="display:grid;gap:4px"><h3>แมลงและโรคที่พบบ่อย</h3><p class="small">${esc(sp.pestNotes)}</p>${sp.diseaseNotes ? `<p class="small">${esc(sp.diseaseNotes)}</p>` : ''}
+        <div class="card"><div class="care-row"><div class="care-ico green" aria-hidden="true">🐛</div><div style="display:grid;gap:4px"><h3>ปัญหาที่ควรเฝ้าระวัง</h3><p class="small">${esc(sp.pestNotes)}</p>${sp.diseaseNotes ? `<p class="small">${esc(sp.diseaseNotes)}</p>` : ''}
           ${sp.commonProblems.length ? `<ul class="small" style="margin:4px 0 0;padding-left:18px">${sp.commonProblems.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}</div></div>
           <div class="warn"><span aria-hidden="true">🧤</span><span class="small">ถ้าจะใช้ยาฆ่าแมลงหรือสารกำจัดโรค อ่านฉลาก ใช้ตามอัตราที่ระบุ สวมอุปกรณ์ป้องกัน และเก็บให้พ้นเด็กและสัตว์เลี้ยง</span></div></div>`;
     } else if (tab === 'fert') {
@@ -102,7 +105,7 @@ Views.plant = {
         : C.EmptyState({ icon: '📖', title: 'ยังไม่มีประวัติ', text: 'เมื่อทำงานดูแล ตรวจดิน หรือใส่ปุ๋ย จะแสดงที่นี่' });
     }
 
-    return `<div class="page">${hero}${head}${facts}${problem}${quick}${tabBar}<div id="tabpanel" role="tabpanel" aria-labelledby="tab-${tab}" class="section">${panel}</div>
+    return `<div class="page">${hero}${head}${facts}${problem}${quick}${spWarn}${tabBar}<div id="tabpanel" role="tabpanel" aria-labelledby="tab-${tab}" class="section">${panel}</div>
       <hr class="sep"><div class="btn-row"><button class="btn ghost" data-act="edit-plant" data-id="${p.id}">✏️ แก้ไข</button><button class="btn danger" data-act="delete-plant" data-id="${p.id}">🗑️ ลบต้นนี้</button></div></div>`;
   },
 };
@@ -173,7 +176,10 @@ Views.plantForm = {
     return `<form class="page form" data-form="save-plant" novalidate>
       <div class="page-head"><h1>${params.id ? '✏️ แก้ไขต้นไม้' : '🌱 เพิ่มต้นไม้'}</h1>${params.id ? '' : '<p class="muted">กรอกเท่าที่รู้ ที่เหลือระบบช่วยเอง</p>'}</div>
       <div class="field ${E.speciesId ? 'err' : ''}"><span class="label" id="spLbl">1. ต้นไม้ชนิดไหน?</span>
-        <div class="species-grid" role="radiogroup" aria-labelledby="spLbl">${Garden.species().map(s => `<button type="button" class="sp-tile" role="radio" aria-checked="${f.speciesId === s.id}" data-act="pf-species" data-id="${s.id}">${PlantArt.svg(s)}<span>${esc(s.nameTh)}</span></button>`).join('')}</div>
+        <input class="input" type="search" id="pfSearch" data-live="pf-search" placeholder="🔍 ค้นหาชนิดต้นไม้ เช่น เยอบีร่า, daisy" aria-label="ค้นหาชนิดต้นไม้" autocomplete="off">
+        <div class="species-grid" role="radiogroup" aria-labelledby="spLbl">${Garden.species().map(s => `<button type="button" class="sp-tile" role="radio" aria-checked="${f.speciesId === s.id}" data-act="pf-species" data-id="${s.id}" data-search="${esc(U.norm([s.nameTh, s.nameEn, s.scientificName, s.category].join(' ')))}">${PlantArt.svg(s)}<span>${esc(s.nameTh)}</span>
+          <span class="sp-diff">${s.custom ? 'เพิ่มเอง' : 'ปลูก' + esc(s.difficulty)}</span><span class="sp-diff">☀️ ${esc(s.sunlight.label)}</span><span class="sp-diff">${s.suitableForPot ? '🪴 ปลูกกระถางได้' : '🟫 ไม่เหมาะกับกระถาง'}</span></button>`).join('')}</div>
+        <p class="tiny" id="pfNoMatch" hidden>ไม่พบชนิดที่ค้นหา ลองเพิ่มเป็น "ชนิดอื่น" ด้านล่างได้</p>
         ${E.speciesId ? `<span class="err-msg" role="alert">${E.speciesId}</span>` : ''}
         <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end;margin-top:6px"><div class="field"><label for="pfCustom" class="small">ไม่มีในรายการ? เพิ่มชนิดอื่น</label><input class="input" id="pfCustom" data-bind="form.customName" value="${esc(f.customName)}" placeholder="พิมพ์ชื่อต้นไม้" maxlength="30"></div><button type="button" class="btn" data-act="pf-add-custom">เพิ่ม</button></div>
       </div>
@@ -206,6 +212,11 @@ Object.assign(Actions, {
     App.render();
   },
   'pf-rerender'() { App.render(); },
+  'pf-search'(el) {
+    const q = U.norm(el.value); let shown = 0;
+    document.querySelectorAll('.sp-tile[data-search]').forEach(t => { const ok = !q || t.dataset.search.includes(q); t.hidden = !ok; if (ok) shown++; });
+    const nm = document.getElementById('pfNoMatch'); if (nm) nm.hidden = shown > 0;
+  },
   'pf-add-custom'() {
     const f = App.ui.form;
     try { const sp = Garden.addCustomSpecies(f.customName); f.speciesId = sp.id; f.customName = ''; Garden.save(); App.render(); Toast.show(`เพิ่ม "${sp.nameTh}" แล้ว`); }
@@ -254,6 +265,8 @@ Views.species = {
       <div class="page-head"><h1>${sp.emoji} ${esc(sp.nameTh)}</h1><p class="muted">${esc(sp.nameEn)}${sp.scientificName ? ` · <i>${esc(sp.scientificName)}</i>` : ''}</p>
       <div class="badge-row"><span class="tag green">ปลูก${esc(sp.difficulty)}</span><span class="tag">${esc(sp.category)}</span>${sp.suitableForPot ? '<span class="tag">🪴 กระถางได้</span>' : ''}${sp.suitableForGround ? '<span class="tag">🟫 ลงดินได้</span>' : ''}</div></div>
       <p>${esc(sp.description)}</p>
+      ${sp.warnings && sp.warnings.length ? `<div class="warn danger"><span aria-hidden="true">⚠️</span><div style="display:grid;gap:4px">${sp.warnings.map(w => `<span class="small">${esc(w)}</span>`).join('')}</div></div>` : ''}
+      ${row('🌿', 'green', 'การดูแล', sp.careNotes)}
       ${row('☀️', 'yellow', 'แสง · ' + esc(sp.sunlight.label), sp.sunlight.text)}${row('💧', 'blue', 'น้ำ', sp.wateringGuideline)}${row('🟫', 'green', 'ดิน', sp.soilGuideline)}
       ${row('🧪', 'yellow', 'ปุ๋ย', sp.fertilizerGuideline)}${row('🌸', 'pink', 'การออกดอก', sp.floweringNotes)}${row('✂️', 'pink', 'การตัดแต่ง', sp.pruningNotes)}${row('🐛', 'green', 'แมลงที่พบบ่อย', sp.pestNotes)}
       <button class="btn primary" data-act="add-plant" data-species="${sp.id}">+ ปลูก${esc(sp.nameTh)}</button></div>`;

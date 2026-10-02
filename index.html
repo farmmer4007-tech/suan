@@ -166,7 +166,7 @@ a { color: var(--pink-ink); }
 /* species picker tiles */
 .species-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; }
 .sp-tile { border: 2px solid var(--line); background: var(--surface); border-radius: var(--r); padding: 10px 6px; cursor: pointer; display: grid; justify-items: center; gap: 4px; text-align: center; font-size: .9rem; position: relative; min-width: 0; }
-.sp-tile svg { width: 60px; height: 60px; }
+.sp-tile svg, .sp-tile img { width: 60px; height: 60px; border-radius: 50%; }
 .sp-tile[aria-checked="true"], .sp-tile[aria-pressed="true"] { border-color: var(--pink); background: var(--pink-soft); }
 .sp-tile[aria-checked="true"]::after { content: "✓"; position: absolute; top: 6px; right: 8px; width: 22px; height: 22px; border-radius: 50%; background: var(--pink-ink); color: var(--surface); font-size: .8rem; display: grid; place-items: center; }
 .sp-tile .sp-diff { font-size: .74rem; color: var(--ink-3); }
@@ -507,6 +507,14 @@ const RegionService = {
  * data/species.js — ฐานข้อมูลพืช (Data Layer แยกจาก UI)
  * เพิ่มต้นไม้ใหม่ = เพิ่ม object ใน array นี้ (หรือย้ายไป API ภายหลัง)
  * ข้อมูลเป็นแนวทางทั่วไป ไม่รับประกันผล ขึ้นกับพันธุ์และสภาพแวดล้อม
+ *
+ * ฟิลด์เสริม (ไม่บังคับ ใช้ได้กับทุกชนิด):
+ *   careNotes      ข้อความ "การดูแล" ที่แสดงใน Plant Detail
+ *   warnings[]     คำเตือนสำคัญ แสดงเด่นใน Plant Detail
+ *   extraChecks[]  งานตรวจเฉพาะชนิด {key,type,startDay,every,title('{name}'),description,steps}
+ *   plantingSteps[] ขั้นตอนปลูกเฉพาะชนิด (แทนค่า default)
+ *   doctorHints[]  กฎ Plant Doctor เฉพาะชนิด {symptoms[],when{qid:[values]},title,why,checks,actions}
+ *   image.src      URL รูปจริงในอนาคต (null = ใช้ภาพวาด placeholder)
  * ============================================================ */
 const PLANT_SPECIES = [
   {
@@ -773,6 +781,119 @@ const PLANT_SPECIES = [
     commonProblems: ['ลำต้นเน่าจากน้ำขัง', 'ใบไหม้แดด'],
     image: { kind: 'begonia', petal: '#F58FA6', center: '#F7D24A', bg: '#FDE6EC' },
     description: 'ดอกและใบสวย เหมาะกับมุมที่แดดไม่จัด',
+  },
+  /* ---- เพิ่มชุดที่ 2: ไม้ดอกตระกูลเดซี่ (ใช้ schema เดิม + ฟิลด์เสริมทั่วไปที่ไม่บังคับ) ---- */
+  {
+    id: 'marguerite', emoji: '🌼', nameTh: 'มากาเร็ต', nameEn: 'Marguerite Daisy', scientificName: 'Argyranthemum frutescens',
+    category: 'ไม้ดอก', difficulty: 'ง่าย–ปานกลาง', suitableForPot: true, suitableForGround: true,
+    sunlight: { minHours: 4, label: 'แดด 4–6 ชั่วโมง', text: 'ควรได้แดดประมาณ 4–6 ชั่วโมงต่อวัน แดดเช้าดีที่สุด ในพื้นที่ร้อนอย่างภาคกลาง ถ้ามีร่มเงาช่วงบ่ายจะช่วยให้ต้นไม่โทรมเร็ว' },
+    waterNeed: 'medium',
+    wateringGuideline: 'ตรวจดินก่อนรดทุกครั้ง รดเมื่อหน้าดินลึก 2–3 ซม. เริ่มแห้ง หลีกเลี่ยงน้ำขังในจานรองหรือรอบโคน',
+    soilGuideline: 'ดินโปร่ง ระบายน้ำดี ถ้าปลูกกระถางใช้ดินผสมพร้อมปลูกที่ร่วนซุย ถ้าลงดินควรผสมปุ๋ยหมักให้ดินร่วน',
+    fertilizerGuideline: 'หลังต้นตั้งตัวประมาณ 3 สัปดาห์ ใส่ปุ๋ยตามอัตราบนฉลากผลิตภัณฑ์ ช่วงอากาศร้อนจัดที่ต้นดูโทรม ไม่ควรเร่งใส่ปุ๋ยเพิ่ม',
+    fertStartDay: 21, fertIntervalDays: 30,
+    temperatureNotes: 'อากาศร้อนจัดอาจทำให้ต้นโทรมและออกดอกลดลง ช่วงบ่ายที่ร้อนมาก ลองย้ายกระถางไปที่มีร่มรำไร',
+    floweringStartDay: 60,
+    floweringNotes: 'ออกดอกได้ดีในช่วงอากาศไม่ร้อนจัด ช่วงหน้าร้อนอาจมีดอกน้อยลง เป็นเรื่องที่เกิดได้ ระยะเวลาขึ้นกับพันธุ์และสภาพแวดล้อม',
+    pruningNotes: 'เด็ดยอดช่วงแรกเพื่อให้แตกพุ่ม เด็ดดอกที่โรยออก และตัดแต่งกิ่งที่ยืดยาวเบา ๆ เมื่อต้นเริ่มเสียทรง',
+    pruneTasks: [{ day: 21, title: 'เด็ดยอดให้แตกพุ่ม' }, { day: 60, every: 30, title: 'ตัดแต่งกิ่งที่ยืดยาวเบา ๆ' }],
+    deadhead: true,
+    careNotes: 'หัวใจของมากาเร็ตคือ "แตกพุ่ม" ยิ่งมีกิ่งมาก ยิ่งมีที่ให้ดอกออก เด็ดยอดและเด็ดดอกโรยอย่างสม่ำเสมอ และระวังดินแฉะ',
+    extraChecks: [
+      { key: 'bush', type: 'GENERAL', startDay: 10, every: 7, title: 'ตรวจการแตกพุ่ม ({name})', description: 'ดูว่าต้นแตกกิ่งข้างรอบต้น หรือยืดสูงไปทางเดียว',
+        steps: ['ดูว่ามีกิ่งข้างแตกออกมาใหม่ไหม', 'ถ้าต้นยืดสูงโปร่ง ลองเด็ดปลายยอดออกเล็กน้อย', 'ถ้าเอนไปทางเดียว ลองหมุนกระถางให้ได้แดดทั่วต้น'] },
+    ],
+    pestNotes: 'เพลี้ยอ่อน เพลี้ยไฟ และหนอนกินใบ ตรวจใต้ใบและยอดอ่อนเป็นประจำ',
+    diseaseNotes: 'รากและโคนเสียหายเมื่อดินแฉะนาน ใบเหี่ยวทั้งที่ดินชื้นเป็นสัญญาณที่ควรตรวจราก',
+    commonProblems: ['ใบเหี่ยวช่วงร้อนจัด', 'ดินแฉะ/รากมีปัญหา', 'เพลี้ยตามยอดอ่อน', 'ออกดอกน้อยช่วงหน้าร้อน'],
+    doctorHints: [
+      { symptoms: ['wilt'], when: { wiltTime: ['afternoon'] }, title: 'มีความเป็นไปได้ว่ามากาเร็ตกำลังเครียดจากความร้อน', why: 'มากาเร็ตไม่ชอบอากาศร้อนจัด ช่วงบ่ายจึงเหี่ยวได้ง่าย ถ้าฟื้นตอนเย็นมักไม่อันตราย',
+        checks: ['ดูว่าเหี่ยวเฉพาะช่วงบ่ายแล้วฟื้นตอนเย็นหรือไม่'], actions: ['ถ้าปลูกกระถาง ย้ายไปที่มีร่มรำไรช่วงบ่าย', 'ตรวจดินตอนเช้า ถ้าดินชื้นอยู่ยังไม่ต้องรดเพิ่ม'] },
+      { symptoms: ['wilt', 'yellow', 'soggy'], when: { soil: ['wet'] }, title: 'อาจเกิดจากดินแฉะจนรากมีปัญหา', why: 'มากาเร็ตไม่ชอบน้ำขัง รากที่แช่น้ำนานจะดูดน้ำไม่ได้ ต้นจึงเหี่ยวทั้งที่ดินชื้น',
+        checks: ['ดูว่ามีน้ำขังในจานรองหรือรอบโคนไหม', 'ดูโคนต้นว่านิ่มหรือเปลี่ยนสีไหม'], actions: ['งดรดน้ำจนหน้าดินเริ่มแห้ง', 'เทน้ำในจานรองทิ้ง'] },
+      { symptoms: ['noflower'], title: 'อาจเกี่ยวกับอากาศร้อนจัดหรือต้นยังไม่แตกพุ่มพอ', why: 'มากาเร็ตมักออกดอกน้อยลงช่วงอากาศร้อนจัด และต้นที่มีกิ่งน้อยก็จะมีจุดให้ดอกออกน้อย',
+        checks: ['ดูว่าต้นมีกิ่งแตกพุ่มหรือยืดเป็นกิ่งเดียว'], actions: ['เด็ดยอดและเด็ดดอกโรยเพื่อกระตุ้นการแตกกิ่งใหม่', 'ให้แดดเช้าเต็มที่ แต่มีร่มช่วงบ่าย'] },
+      { symptoms: ['nogrowth'], title: 'มีความเป็นไปได้ว่าต้นยืดแต่ไม่แตกพุ่ม', why: 'ถ้าไม่เด็ดยอด มากาเร็ตอาจโตขึ้นเป็นกิ่งยาวโปร่ง',
+        checks: ['ดูจำนวนกิ่งข้าง'], actions: ['เด็ดปลายยอดออกประมาณ 1–2 ซม. เหนือข้อใบ'] },
+    ],
+    image: { kind: 'daisy', petal: '#FFFFFF', center: '#F2B705', bg: '#FFF6D6', stroke: '#EADFC0', src: null },
+    description: 'ดอกขาวใจเหลืองน่ารัก ออกดอกดกเมื่อแตกพุ่มดี เหมาะกับมุมที่ได้แดดเช้าและมีร่มบ่าย',
+  },
+  {
+    id: 'daisy', emoji: '🌼', nameTh: 'เดซี่', nameEn: 'Daisy', scientificName: '',
+    category: 'ไม้ดอก', difficulty: 'ปานกลาง', suitableForPot: true, suitableForGround: true,
+    sunlight: { minHours: 4, label: 'แดด 4–6 ชั่วโมง', text: 'ควรได้แดดประมาณ 4–6 ชั่วโมงต่อวัน และวางในที่ลมพัดผ่าน ในอากาศร้อนควรเลี่ยงแดดบ่ายจัด' },
+    waterNeed: 'medium',
+    wateringGuideline: 'ตรวจดินก่อนรด รดเมื่อดินเริ่มแห้ง ไม่ควรปล่อยให้แฉะ รดที่โคนต้นและเลี่ยงการรดโดนดอก',
+    soilGuideline: 'ดินโปร่ง ระบายน้ำดี ปลูกในกระถางหรือแปลงที่น้ำไม่ขัง',
+    fertilizerGuideline: 'ใส่ปุ๋ยตามอัตราบนฉลากผลิตภัณฑ์หลังต้นตั้งตัว ไม่ใส่เกินฉลากเพื่อเร่งดอก',
+    fertStartDay: 21, fertIntervalDays: 30,
+    temperatureNotes: 'อากาศเย็นเหมาะกับการออกดอกมากกว่าอากาศร้อนจัด ในภาคกลางช่วงปลายฝนถึงหน้าหนาวมักดูแลง่ายกว่าหน้าร้อน',
+    floweringStartDay: 60,
+    floweringNotes: 'การออกดอกขึ้นกับแสงที่เพียงพอและอากาศถ่ายเท เดซี่มีหลายพันธุ์ ระยะเวลาออกดอกจึงต่างกันไป ไม่มีวันที่แน่นอน',
+    pruningNotes: 'เด็ดดอกโรยออกสม่ำเสมอเพื่อช่วยกระตุ้นให้ออกดอกใหม่ และตัดใบแห้งใบเสียออก',
+    pruneTasks: [],
+    deadhead: true,
+    careNotes: 'ให้ความสำคัญกับ 2 เรื่อง: แสงเพียงพอ และอากาศถ่ายเท อย่าวางกระถางชิดกันแน่น เด็ดดอกโรยเป็นประจำ',
+    pestNotes: 'เพลี้ยอ่อน เพลี้ยไฟ และไรแดงช่วงอากาศร้อนแห้ง',
+    diseaseNotes: 'ใบไหม้เมื่อโดนแดดบ่ายจัด รากเสียหายเมื่อดินแฉะนาน ราแป้งเมื่ออากาศชื้นและลมไม่ถ่ายเท',
+    commonProblems: ['ต้นเหี่ยวช่วงร้อน', 'ใบไหม้จากแดดจัด', 'ดินแฉะ', 'เพลี้ยและไรแดง', 'ออกดอกน้อย'],
+    doctorHints: [
+      { symptoms: ['noflower'], title: 'อาจเกี่ยวกับอากาศร้อนจัด แสงไม่พอ หรืออากาศไม่ถ่ายเท', why: 'เดซี่มักออกดอกได้ดีกว่าในช่วงอากาศเย็น และต้องการแสงเพียงพอร่วมกับลมที่พัดผ่าน',
+        checks: ['ดูว่าที่วางได้แดดประมาณ 4–6 ชั่วโมงไหม', 'ดูว่ากระถางวางชิดกันจนลมไม่ผ่านหรือไม่'], actions: ['เด็ดดอกโรยออก', 'ย้ายไปที่ได้แดดเช้าเต็มที่และลมผ่าน'] },
+      { symptoms: ['burn'], when: { sun: ['5to7', 'gt7'] }, title: 'มีความเป็นไปได้ว่าโดนแดดบ่ายร้อนจัดเกินไป', why: 'เดซี่ไม่ชอบความร้อนจัด แดดบ่ายในภาคกลางอาจทำให้ใบไหม้',
+        checks: ['ดูว่าใบที่ไหม้อยู่ด้านที่หันรับแดดบ่ายไหม'], actions: ['ให้ร่มรำไรช่วงบ่าย', 'ตรวจดินตอนเช้าอย่าปล่อยให้แห้งจัด'] },
+      { symptoms: ['wilt', 'soggy', 'yellow'], when: { soil: ['wet'] }, title: 'อาจเกิดจากดินแฉะหรือระบายน้ำไม่ดี', why: 'เดซี่ไม่ควรปล่อยให้ดินแฉะ รากที่ชื้นตลอดจะเสียหายได้',
+        checks: ['ดูว่ามีน้ำขังก้นกระถางหรือในแปลงไหม'], actions: ['งดรดน้ำจนดินเริ่มแห้ง', 'ตรวจว่ารูระบายน้ำไม่ตัน'] },
+      { symptoms: ['spots'], when: { spotType: ['white'] }, title: 'ควรตรวจเรื่องอากาศถ่ายเท', why: 'ผงขาวบนใบของเดซี่มักพบเมื่ออากาศชื้นและลมไม่ผ่าน',
+        checks: ['ดูระยะห่างระหว่างกระถาง'], actions: ['จัดกระถางให้ห่างกันขึ้น', 'รดน้ำที่โคน ไม่รดโดนใบ'] },
+    ],
+    image: { kind: 'daisy', petal: '#F7C6D9', center: '#F2B705', bg: '#FDE8F0', layers: 2, src: null },
+    description: 'ดอกเล็กสดใส มีหลายพันธุ์ ออกดอกได้ดีในช่วงอากาศเย็น ต้องการแสงพอและลมผ่าน',
+  },
+  {
+    id: 'gerbera', emoji: '🌸', nameTh: 'เยอบีร่า', nameEn: 'Gerbera Daisy', scientificName: 'Gerbera jamesonii',
+    category: 'ไม้ดอก', difficulty: 'ปานกลาง–ค่อนข้างยาก', suitableForPot: true, suitableForGround: true,
+    sunlight: { minHours: 4, label: 'แดด 4–6 ชั่วโมง (เน้นแดดเช้า)', text: 'ควรได้แดดประมาณ 4–6 ชั่วโมงต่อวัน โดยเฉพาะแดดช่วงเช้า ถ้าแดดบ่ายร้อนจัด ควรพิจารณาพรางแสงช่วงบ่าย' },
+    waterNeed: 'medium',
+    wateringGuideline: 'ตรวจดินก่อนรดทุกครั้ง รดเมื่อดินเริ่มแห้ง รดที่ดินรอบ ๆ ต้น ไม่รดลงกลางกอหรือให้น้ำค้างที่โคน และหลีกเลี่ยงน้ำขังเด็ดขาด',
+    soilGuideline: 'ดินหรือวัสดุปลูกที่โปร่งมาก ระบายน้ำดี ถ้าปลูกลงแปลง ควรยกแปลงให้น้ำไม่ขัง',
+    fertilizerGuideline: 'ใส่ปุ๋ยตามอัตราบนฉลากผลิตภัณฑ์หลังต้นตั้งตัว ไม่โรยปุ๋ยกองชิดโคนต้น',
+    fertStartDay: 21, fertIntervalDays: 30,
+    temperatureNotes: 'แดดบ่ายในภาคกลางร้อนจัด อาจทำให้ใบไหม้หรือต้นเหี่ยว ควรมีร่มรำไรช่วงบ่าย',
+    floweringStartDay: 75,
+    floweringNotes: 'ต้องการแสงเพียงพอและสภาพแวดล้อมที่ไม่แฉะ ดอกอาจออกเป็นช่วง ๆ ระยะเวลาขึ้นกับพันธุ์และอายุต้น ไม่มีวันที่แน่นอน',
+    pruningNotes: 'ตัดก้านดอกที่โรยออกที่โคนก้าน และเด็ดใบแก่ที่เหลืองหรือเสียบริเวณโคนออก ให้โคนโปร่ง',
+    pruneTasks: [],
+    deadhead: true,
+    careNotes: 'เยอบีร่าเสียหายง่ายที่สุดจาก "โคนต้นเปียกแฉะ" ให้โคนโปร่ง แห้ง ไม่ถูกดินกลบ และตรวจน้ำขังเป็นประจำ',
+    warnings: [
+      'ระวังน้ำขัง: เยอบีร่าเสี่ยงรากเน่าและโคนเน่า ตรวจดินก่อนรดทุกครั้ง และเทน้ำในจานรองทิ้งเสมอ',
+      'อย่าปลูกลึกจนดินกลบคอ/โคนต้น ให้ส่วนโคนที่ใบแตกออกอยู่เหนือผิวดินเล็กน้อย',
+    ],
+    plantingSteps: ['เตรียมกระถางที่มีรูระบายน้ำ หรือแปลงที่ยกสูง', 'ใส่ดิน/วัสดุปลูกที่โปร่งมาก ระบายน้ำดี', 'ค่อย ๆ ถอดต้นออกจากถุง ระวังรากแตก', 'วางต้นให้โคน (จุดที่ใบแตกออก) อยู่เหนือผิวดินเล็กน้อย ห้ามกลบลึก', 'กลบดินรอบ ๆ และกดเบา ๆ โดยไม่กลบโคน', 'รดน้ำที่ดินรอบต้นให้ชุ่ม ไม่รดลงกลางกอ'],
+    extraChecks: [
+      { key: 'crown', type: 'DISEASE_CHECK', startDay: 1, every: 3, title: 'ตรวจบริเวณโคนต้น ({name})', description: 'โคนต้นคือจุดที่เยอบีร่าเสียหายง่ายที่สุด',
+        steps: ['ดูว่าโคนต้นไม่ถูกดินกลบ', 'ดูว่าโคนแห้ง ไม่นิ่มหรือเปลี่ยนสีเข้ม', 'เด็ดใบแก่ที่เหลืองหรือเน่าบริเวณโคนออก'] },
+      { key: 'waterlog', type: 'GENERAL', startDay: 2, every: 4, title: 'ตรวจน้ำขัง ({name})', description: 'น้ำขังทำให้รากและโคนเน่าได้',
+        steps: ['ดูจานรองกระถางว่ามีน้ำค้างไหม ถ้ามี เททิ้ง', 'ถ้าปลูกลงแปลง ดูว่ามีน้ำขังรอบต้นหลังรดน้ำหรือฝนตกไหม', 'ถ้าน้ำขังบ่อย พิจารณายกกระถางหรือยกแปลงให้สูงขึ้น'] },
+    ],
+    pestNotes: 'เพลี้ยไฟ เพลี้ยอ่อน แมลงหวี่ขาว และไรแดง ตรวจใต้ใบและดอกตูม',
+    diseaseNotes: 'รากเน่า/โคนเน่าเมื่อดินแฉะหรือโคนถูกกลบลึก ใบไหม้เมื่อโดนแดดบ่ายจัด ใบจุดเมื่อใบเปียกนาน',
+    commonProblems: ['โคนเน่า/รากมีปัญหาจากน้ำขัง', 'ใบเหี่ยว', 'ใบไหม้จากแดดบ่าย', 'เพลี้ยไฟและไรแดง', 'ไม่ออกดอก'],
+    doctorHints: [
+      { symptoms: ['wilt', 'yellow', 'soggy'], when: { soil: ['wet', 'moist'] }, title: 'อาจเกี่ยวข้องกับความชื้นในดินมากเกินไปหรือการระบายน้ำไม่ดี', why: 'เยอบีร่าไวต่อน้ำขังเป็นพิเศษ ถ้าดินชื้นแฉะต่อเนื่อง มีความเป็นไปได้ว่ารากหรือโคนต้นเริ่มเสียหาย',
+        checks: ['ตรวจว่ามีน้ำขังบริเวณโคนต้นหรือในจานรองหรือไม่', 'ดูว่าโคนต้นนิ่ม ดำ หรือถูกดินกลบลึกเกินไปหรือไม่'],
+        actions: ['งดรดน้ำจนกว่าดินจะเริ่มแห้ง', 'เขี่ยดินที่กลบโคนออก ให้โคนต้นอยู่เหนือผิวดินเล็กน้อย', 'ถ้าดินแน่นมาก พิจารณาย้ายไปปลูกในวัสดุที่โปร่งกว่า'] },
+      { symptoms: ['burn', 'wilt'], when: { sun: ['5to7', 'gt7'] }, title: 'มีความเป็นไปได้ว่าโดนแดดบ่ายร้อนจัด', why: 'เยอบีร่าชอบแดดเช้า แดดบ่ายในภาคกลางอาจทำให้ใบไหม้หรือเหี่ยว',
+        checks: ['ดูว่าตำแหน่งปลูกโดนแดดตรงช่วงบ่ายไหม'], actions: ['พรางแสงช่วงบ่าย เช่น ย้ายกระถางใต้ชายคาหรือใช้ซาแรน'] },
+      { symptoms: ['noflower'], title: 'ควรตรวจเรื่องแสงและความแฉะของดิน', why: 'เยอบีร่าต้องการแสงเพียงพอ (โดยเฉพาะแดดเช้า) และสภาพแวดล้อมที่ไม่แฉะจึงจะออกดอกได้ดี',
+        checks: ['ดูว่าได้แดดเช้าเพียงพอหรือไม่', 'ดูว่าดินแฉะบ่อยหรือไม่'], actions: ['ตัดก้านดอกโรยที่โคนก้าน', 'เด็ดใบแก่บริเวณโคนออกให้โคนโปร่ง'] },
+      { symptoms: ['spots'], title: 'ควรตรวจว่าใบและโคนเปียกน้ำนานหรือไม่', why: 'ใบที่เปียกนานหรือโคนที่ชื้นตลอดเพิ่มโอกาสเกิดจุดบนใบ',
+        checks: ['ดูว่ารดน้ำโดนใบหรือกลางกอบ่อยไหม'], actions: ['รดที่ดินรอบต้นช่วงเช้า ไม่รดลงกลางกอ', 'เด็ดใบที่มีจุดออก'] },
+    ],
+    image: { kind: 'daisy', petal: '#F46A3B', center: '#5A3A1E', bg: '#FFE6DA', big: true, src: null },
+    description: 'ดอกใหญ่สีสด สวยมาก แต่ต้องใส่ใจเรื่องน้ำขังและโคนต้นเป็นพิเศษ เหมาะกับคนที่เริ่มคล่องขึ้นแล้ว',
   },
 ];
 
@@ -1135,6 +1256,16 @@ const RuleBasedDiagnosisService = {
       }
     }
 
+    // กฎเฉพาะชนิดพืชจาก Plant Database (doctorHints) — เสริมกฎทั่วไป ไม่ฟันธง
+    (species && species.doctorHints || []).forEach(h => {
+      if (!h.symptoms.includes(symptom)) return;
+      const ok = Object.entries(h.when || {}).every(([q, vals]) => vals.includes(a[q]));
+      if (!ok) return;
+      causes.unshift({ title: h.title, why: h.why, speciesSpecific: true });
+      add(checks, ...(h.checks || []));
+      add(actions, ...(h.actions || []));
+    });
+
     if (!causes.length) {
       cause('ยังระบุสาเหตุที่ชัดเจนไม่ได้จากข้อมูลตอนนี้', 'อาการอาจเกิดจากหลายปัจจัยร่วมกัน ลองสังเกตต่อและบันทึกภาพไว้');
       add(checks, 'ดูดินทุกเช้าก่อนรดน้ำ', 'ดูใต้ใบหาแมลง', 'ถ่ายรูปเทียบทุก 2–3 วัน');
@@ -1487,6 +1618,15 @@ const TaskEngine = {
         });
       }
     });
+    // งานตรวจเฉพาะชนิดพืช (ฟิลด์เสริม extraChecks ใน Plant Database)
+    (sp && sp.extraChecks || []).forEach(x => {
+      if (d >= x.startDay && (d - x.startDay) % x.every === 0) {
+        mk('x-' + x.key, x.type || 'GENERAL', {
+          title: x.title.replace('{name}', n), description: x.description || '', steps: x.steps || [],
+          recurrence: x.every === 1 ? 'ทุกวัน' : x.every === 7 ? 'สัปดาห์ละครั้ง' : `ทุก ${x.every} วัน`,
+        });
+      }
+    });
     if (plant.flowering && sp && sp.deadhead && d % 7 === 5) {
       mk('deadhead', 'PRUNING', {
         title: `เด็ดดอกที่โรย (${n})`, description: 'ช่วยให้ต้นออกดอกใหม่ต่อเนื่อง',
@@ -1521,7 +1661,7 @@ const TaskEngine = {
       const orchid = sp && sp.medium === 'orchid';
       out.push(this.make(plant, sp, 'plant', 'PLANTING', due, {
         title: `ปลูก${n}`, description: 'ทำทีละขั้น ติ๊กให้ครบแล้วกดเสร็จ',
-        steps: orchid
+        steps: sp && sp.plantingSteps ? sp.plantingSteps : orchid
           ? ['เตรียมกระถางหรือกระเช้าสำหรับกล้วยไม้', 'ใส่กาบมะพร้าวหรือถ่าน', 'วางต้นให้โคนไม่จมวัสดุปลูก', 'ใช้ลวดหรือไม้หลักยึดต้นให้แน่น', 'รดน้ำให้ชุ่ม']
           : ['เตรียมหลุมหรือกระถาง (กระถางต้องมีรูระบายน้ำ)', 'ใส่ดินผสมหรือวัสดุปลูก', 'ค่อย ๆ ถอดต้นออกจากถุง ระวังรากแตก', 'วางต้นให้โคนอยู่ระดับเดียวกับผิวดิน', 'กลบดินและกดเบา ๆ รอบโคน', 'รดน้ำครั้งแรกให้ชุ่ม'],
         checklist: true,
@@ -2070,6 +2210,7 @@ const PlantArt = (() => {
     <ellipse cx="46" cy="94" rx="13" ry="6" fill="${leaf}" transform="rotate(-30 46 94)"/><ellipse cx="74" cy="86" rx="13" ry="6" fill="${leaf}" transform="rotate(28 74 86)"/>`;
   function svg(sp) {
     const im = (sp && sp.image) || { kind: 'sprout', petal: '#7CC59A', center: '#4E9A6E', bg: '#E3F4E9' };
+    if (im.src) return `<img src="${esc(im.src)}" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover">`;
     const P = im.petal, Ce = im.center, st = im.stroke ? `stroke="${im.stroke}" stroke-width="1.5"` : '';
     let f = '';
     switch (im.kind) {
@@ -2086,8 +2227,8 @@ const PlantArt = (() => {
         f = ring(14, 8, 10, 22, P) + ring(11, 7, 9, 14, P, 12, 'fill-opacity=".9"') + `<circle cx="60" cy="52" r="10" fill="${Ce}"/>` + ring(6, 3, 5, 6, P, 0);
         break;
       case 'daisy':
-        f = im.big ? ring(18, 6, 15, 27, P) + `<circle cx="60" cy="52" r="17" fill="${Ce}"/><circle cx="60" cy="52" r="11" fill="${Ce}" stroke="#4a2a12" stroke-dasharray="2 3" stroke-width="2"/>`
-          : ring(14, 6, 15, 20, P) + (im.layers === 2 ? ring(12, 5, 11, 13, P, 15, 'fill-opacity=".85"') : '') + `<circle cx="60" cy="52" r="8" fill="${Ce}"/>`;
+        f = im.big ? ring(18, 6, 15, 27, P, 0, st) + `<circle cx="60" cy="52" r="17" fill="${Ce}"/><circle cx="60" cy="52" r="11" fill="${Ce}" stroke="#4a2a12" stroke-dasharray="2 3" stroke-width="2"/>`
+          : ring(14, 6, 15, 20, P, 0, st) + (im.layers === 2 ? ring(12, 5, 11, 13, P, 15, `fill-opacity=".85" ${st}`) : '') + `<circle cx="60" cy="52" r="8" fill="${Ce}"/>`;
         break;
       case 'star':
         f = ring(6, 6, 16, 15, P, 0, st) + ring(6, 5, 12, 10, P, 30, st) + `<circle cx="60" cy="52" r="5" fill="${Ce}"/>`;
@@ -2889,6 +3030,7 @@ Views.plant = {
       <button class="btn primary" data-act="water-check" data-id="${p.id}">💧 ตรวจดิน</button>
       <button class="btn" data-act="doctor-for" data-id="${p.id}">🆘 มีปัญหา?</button></div>` : '';
 
+    const spWarn = sp && sp.warnings && sp.warnings.length ? `<div class="warn danger" role="note"><span aria-hidden="true">⚠️</span><div style="display:grid;gap:4px"><b>ข้อควรระวังสำหรับ${esc(sp.nameTh)}</b>${sp.warnings.map(w => `<span class="small">${esc(w)}</span>`).join('')}</div></div>` : '';
     const tabs = [['overview', 'ภาพรวม'], ['care', 'การดูแล'], ['fert', 'ปุ๋ย'], ['photos', 'รูป'], ['history', 'ประวัติ']];
     const tabBar = `<div class="tabs" role="tablist" aria-label="ข้อมูลต้นไม้">${tabs.map(([k, l]) => `<button class="tab" role="tab" id="tab-${k}" aria-selected="${tab === k}" aria-controls="tabpanel" data-act="detail-tab" data-v="${k}">${l}</button>`).join('')}</div>`;
 
@@ -2906,9 +3048,11 @@ Views.plant = {
           ${mm ? `<div class="warn"><span aria-hidden="true">⚠️</span><span>${esc(mm)}</span></div>` : ''}</div>
         ${C.WateringCard(p, sp)}
         <div class="card"><div class="care-row"><div class="care-ico green" aria-hidden="true">🟫</div><div style="display:grid;gap:4px"><h3>ดิน</h3><p class="small">${esc(sp.soilGuideline)}</p>${p.potSize ? `<p class="tiny">ขนาดกระถาง: ${esc((POT_SIZES.find(x => x.v === p.potSize) || {}).label || '')}</p>` : ''}</div></div></div>
+        ${sp.careNotes ? `<div class="card"><div class="care-row"><div class="care-ico green" aria-hidden="true">🌿</div><div style="display:grid;gap:4px"><h3>การดูแล</h3><p class="small">${esc(sp.careNotes)}</p></div></div></div>` : ''}
+        <div class="card"><div class="care-row"><div class="care-ico pink" aria-hidden="true">🌸</div><div style="display:grid;gap:4px"><h3>การออกดอก</h3><p class="small">${esc(sp.floweringNotes)}</p></div></div></div>
         ${sp.temperatureNotes ? `<div class="card"><div class="care-row"><div class="care-ico pink" aria-hidden="true">🌡️</div><div style="display:grid;gap:4px"><h3>อากาศ</h3><p class="small">${esc(sp.temperatureNotes)}</p></div></div></div>` : ''}
         <div class="card"><div class="care-row"><div class="care-ico pink" aria-hidden="true">✂️</div><div style="display:grid;gap:4px"><h3>การตัดแต่ง</h3><p class="small">${esc(sp.pruningNotes)}</p></div></div></div>
-        <div class="card"><div class="care-row"><div class="care-ico green" aria-hidden="true">🐛</div><div style="display:grid;gap:4px"><h3>แมลงและโรคที่พบบ่อย</h3><p class="small">${esc(sp.pestNotes)}</p>${sp.diseaseNotes ? `<p class="small">${esc(sp.diseaseNotes)}</p>` : ''}
+        <div class="card"><div class="care-row"><div class="care-ico green" aria-hidden="true">🐛</div><div style="display:grid;gap:4px"><h3>ปัญหาที่ควรเฝ้าระวัง</h3><p class="small">${esc(sp.pestNotes)}</p>${sp.diseaseNotes ? `<p class="small">${esc(sp.diseaseNotes)}</p>` : ''}
           ${sp.commonProblems.length ? `<ul class="small" style="margin:4px 0 0;padding-left:18px">${sp.commonProblems.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}</div></div>
           <div class="warn"><span aria-hidden="true">🧤</span><span class="small">ถ้าจะใช้ยาฆ่าแมลงหรือสารกำจัดโรค อ่านฉลาก ใช้ตามอัตราที่ระบุ สวมอุปกรณ์ป้องกัน และเก็บให้พ้นเด็กและสัตว์เลี้ยง</span></div></div>`;
     } else if (tab === 'fert') {
@@ -2921,7 +3065,7 @@ Views.plant = {
         : C.EmptyState({ icon: '📖', title: 'ยังไม่มีประวัติ', text: 'เมื่อทำงานดูแล ตรวจดิน หรือใส่ปุ๋ย จะแสดงที่นี่' });
     }
 
-    return `<div class="page">${hero}${head}${facts}${problem}${quick}${tabBar}<div id="tabpanel" role="tabpanel" aria-labelledby="tab-${tab}" class="section">${panel}</div>
+    return `<div class="page">${hero}${head}${facts}${problem}${quick}${spWarn}${tabBar}<div id="tabpanel" role="tabpanel" aria-labelledby="tab-${tab}" class="section">${panel}</div>
       <hr class="sep"><div class="btn-row"><button class="btn ghost" data-act="edit-plant" data-id="${p.id}">✏️ แก้ไข</button><button class="btn danger" data-act="delete-plant" data-id="${p.id}">🗑️ ลบต้นนี้</button></div></div>`;
   },
 };
@@ -2992,7 +3136,10 @@ Views.plantForm = {
     return `<form class="page form" data-form="save-plant" novalidate>
       <div class="page-head"><h1>${params.id ? '✏️ แก้ไขต้นไม้' : '🌱 เพิ่มต้นไม้'}</h1>${params.id ? '' : '<p class="muted">กรอกเท่าที่รู้ ที่เหลือระบบช่วยเอง</p>'}</div>
       <div class="field ${E.speciesId ? 'err' : ''}"><span class="label" id="spLbl">1. ต้นไม้ชนิดไหน?</span>
-        <div class="species-grid" role="radiogroup" aria-labelledby="spLbl">${Garden.species().map(s => `<button type="button" class="sp-tile" role="radio" aria-checked="${f.speciesId === s.id}" data-act="pf-species" data-id="${s.id}">${PlantArt.svg(s)}<span>${esc(s.nameTh)}</span></button>`).join('')}</div>
+        <input class="input" type="search" id="pfSearch" data-live="pf-search" placeholder="🔍 ค้นหาชนิดต้นไม้ เช่น เยอบีร่า, daisy" aria-label="ค้นหาชนิดต้นไม้" autocomplete="off">
+        <div class="species-grid" role="radiogroup" aria-labelledby="spLbl">${Garden.species().map(s => `<button type="button" class="sp-tile" role="radio" aria-checked="${f.speciesId === s.id}" data-act="pf-species" data-id="${s.id}" data-search="${esc(U.norm([s.nameTh, s.nameEn, s.scientificName, s.category].join(' ')))}">${PlantArt.svg(s)}<span>${esc(s.nameTh)}</span>
+          <span class="sp-diff">${s.custom ? 'เพิ่มเอง' : 'ปลูก' + esc(s.difficulty)}</span><span class="sp-diff">☀️ ${esc(s.sunlight.label)}</span><span class="sp-diff">${s.suitableForPot ? '🪴 ปลูกกระถางได้' : '🟫 ไม่เหมาะกับกระถาง'}</span></button>`).join('')}</div>
+        <p class="tiny" id="pfNoMatch" hidden>ไม่พบชนิดที่ค้นหา ลองเพิ่มเป็น "ชนิดอื่น" ด้านล่างได้</p>
         ${E.speciesId ? `<span class="err-msg" role="alert">${E.speciesId}</span>` : ''}
         <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end;margin-top:6px"><div class="field"><label for="pfCustom" class="small">ไม่มีในรายการ? เพิ่มชนิดอื่น</label><input class="input" id="pfCustom" data-bind="form.customName" value="${esc(f.customName)}" placeholder="พิมพ์ชื่อต้นไม้" maxlength="30"></div><button type="button" class="btn" data-act="pf-add-custom">เพิ่ม</button></div>
       </div>
@@ -3025,6 +3172,11 @@ Object.assign(Actions, {
     App.render();
   },
   'pf-rerender'() { App.render(); },
+  'pf-search'(el) {
+    const q = U.norm(el.value); let shown = 0;
+    document.querySelectorAll('.sp-tile[data-search]').forEach(t => { const ok = !q || t.dataset.search.includes(q); t.hidden = !ok; if (ok) shown++; });
+    const nm = document.getElementById('pfNoMatch'); if (nm) nm.hidden = shown > 0;
+  },
   'pf-add-custom'() {
     const f = App.ui.form;
     try { const sp = Garden.addCustomSpecies(f.customName); f.speciesId = sp.id; f.customName = ''; Garden.save(); App.render(); Toast.show(`เพิ่ม "${sp.nameTh}" แล้ว`); }
@@ -3073,6 +3225,8 @@ Views.species = {
       <div class="page-head"><h1>${sp.emoji} ${esc(sp.nameTh)}</h1><p class="muted">${esc(sp.nameEn)}${sp.scientificName ? ` · <i>${esc(sp.scientificName)}</i>` : ''}</p>
       <div class="badge-row"><span class="tag green">ปลูก${esc(sp.difficulty)}</span><span class="tag">${esc(sp.category)}</span>${sp.suitableForPot ? '<span class="tag">🪴 กระถางได้</span>' : ''}${sp.suitableForGround ? '<span class="tag">🟫 ลงดินได้</span>' : ''}</div></div>
       <p>${esc(sp.description)}</p>
+      ${sp.warnings && sp.warnings.length ? `<div class="warn danger"><span aria-hidden="true">⚠️</span><div style="display:grid;gap:4px">${sp.warnings.map(w => `<span class="small">${esc(w)}</span>`).join('')}</div></div>` : ''}
+      ${row('🌿', 'green', 'การดูแล', sp.careNotes)}
       ${row('☀️', 'yellow', 'แสง · ' + esc(sp.sunlight.label), sp.sunlight.text)}${row('💧', 'blue', 'น้ำ', sp.wateringGuideline)}${row('🟫', 'green', 'ดิน', sp.soilGuideline)}
       ${row('🧪', 'yellow', 'ปุ๋ย', sp.fertilizerGuideline)}${row('🌸', 'pink', 'การออกดอก', sp.floweringNotes)}${row('✂️', 'pink', 'การตัดแต่ง', sp.pruningNotes)}${row('🐛', 'green', 'แมลงที่พบบ่อย', sp.pestNotes)}
       <button class="btn primary" data-act="add-plant" data-species="${sp.id}">+ ปลูก${esc(sp.nameTh)}</button></div>`;
@@ -3564,7 +3718,7 @@ Views.profile = {
         <li><button class="row-btn" data-act="backup-sheet"><span class="r-ico" aria-hidden="true">💾</span><span class="r-txt"><b>สำรอง / กู้คืนข้อมูล</b><span class="r-sub">ข้อมูลเก็บในเบราว์เซอร์นี้ (รูปเก็บแยกในเครื่อง)</span></span>${ICON.chev}</button></li>
       </ul></section>
 
-      <details class="dev card flat"><summary>🧪 โหมดทดลอง (สำหรับลองดูแผนการดูแลล่วงหน้า)</summary>
+      <details class="dev card flat" ${App.ui.devOpen ? 'open' : ''}><summary>🧪 โหมดทดลอง (สำหรับลองดูแผนการดูแลล่วงหน้า)</summary>
         <div class="form"><p class="small muted">เลื่อนวันของแอปเพื่อดูว่างานในอนาคตจะเป็นอย่างไร ข้อมูลจริงไม่เปลี่ยน กลับเป็นวันจริงได้ทุกเมื่อ</p>
         <p>ตอนนี้: <b>${U.fmtDate(U.todayKey(), { weekday: true })}</b>${U.getDayOffset() ? ` <span class="tag yellow">เลื่อน ${U.getDayOffset() > 0 ? '+' : ''}${U.getDayOffset()} วัน</span>` : ''}</p>
         <div class="btn-row"><button class="btn sm" data-act="dev-day" data-n="1">+1 วัน</button><button class="btn sm" data-act="dev-day" data-n="7">+7 วัน</button><button class="btn sm ghost" data-act="dev-day" data-n="0">กลับวันจริง</button></div>
@@ -3646,6 +3800,7 @@ Object.assign(Actions, {
   },
   async 'dev-day'(el) {
     const n = Number(el.dataset.n);
+    App.ui.devOpen = true;
     const off = n === 0 ? 0 : U.getDayOffset() + n;
     U.setDayOffset(off); Garden.db.meta.dayOffset = off; await Garden.save();
     await Garden.runDailyNotifications();

@@ -30,7 +30,7 @@ Views.profile = {
         <li><button class="row-btn" data-act="backup-sheet"><span class="r-ico" aria-hidden="true">💾</span><span class="r-txt"><b>สำรอง / กู้คืนข้อมูล</b><span class="r-sub">ข้อมูลเก็บในเบราว์เซอร์นี้ (รูปเก็บแยกในเครื่อง)</span></span>${ICON.chev}</button></li>
       </ul></section>
 
-      <details class="dev card flat"><summary>🧪 โหมดทดลอง (สำหรับลองดูแผนการดูแลล่วงหน้า)</summary>
+      <details class="dev card flat" ${App.ui.devOpen ? 'open' : ''}><summary>🧪 โหมดทดลอง (สำหรับลองดูแผนการดูแลล่วงหน้า)</summary>
         <div class="form"><p class="small muted">เลื่อนวันของแอปเพื่อดูว่างานในอนาคตจะเป็นอย่างไร ข้อมูลจริงไม่เปลี่ยน กลับเป็นวันจริงได้ทุกเมื่อ</p>
         <p>ตอนนี้: <b>${U.fmtDate(U.todayKey(), { weekday: true })}</b>${U.getDayOffset() ? ` <span class="tag yellow">เลื่อน ${U.getDayOffset() > 0 ? '+' : ''}${U.getDayOffset()} วัน</span>` : ''}</p>
         <div class="btn-row"><button class="btn sm" data-act="dev-day" data-n="1">+1 วัน</button><button class="btn sm" data-act="dev-day" data-n="7">+7 วัน</button><button class="btn sm ghost" data-act="dev-day" data-n="0">กลับวันจริง</button></div>
@@ -112,6 +112,7 @@ Object.assign(Actions, {
   },
   async 'dev-day'(el) {
     const n = Number(el.dataset.n);
+    App.ui.devOpen = true;
     const off = n === 0 ? 0 : U.getDayOffset() + n;
     U.setDayOffset(off); Garden.db.meta.dayOffset = off; await Garden.save();
     await Garden.runDailyNotifications();

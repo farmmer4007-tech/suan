@@ -160,7 +160,7 @@ a { color: var(--pink-ink); }
 /* species picker tiles */
 .species-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; }
 .sp-tile { border: 2px solid var(--line); background: var(--surface); border-radius: var(--r); padding: 10px 6px; cursor: pointer; display: grid; justify-items: center; gap: 4px; text-align: center; font-size: .9rem; position: relative; min-width: 0; }
-.sp-tile svg { width: 60px; height: 60px; }
+.sp-tile svg, .sp-tile img { width: 60px; height: 60px; border-radius: 50%; }
 .sp-tile[aria-checked="true"], .sp-tile[aria-pressed="true"] { border-color: var(--pink); background: var(--pink-soft); }
 .sp-tile[aria-checked="true"]::after { content: "✓"; position: absolute; top: 6px; right: 8px; width: 22px; height: 22px; border-radius: 50%; background: var(--pink-ink); color: var(--surface); font-size: .8rem; display: grid; place-items: center; }
 .sp-tile .sp-diff { font-size: .74rem; color: var(--ink-3); }

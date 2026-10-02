@@ -25,6 +25,7 @@ const PlantArt = (() => {
     <ellipse cx="46" cy="94" rx="13" ry="6" fill="${leaf}" transform="rotate(-30 46 94)"/><ellipse cx="74" cy="86" rx="13" ry="6" fill="${leaf}" transform="rotate(28 74 86)"/>`;
   function svg(sp) {
     const im = (sp && sp.image) || { kind: 'sprout', petal: '#7CC59A', center: '#4E9A6E', bg: '#E3F4E9' };
+    if (im.src) return `<img src="${esc(im.src)}" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover">`;
     const P = im.petal, Ce = im.center, st = im.stroke ? `stroke="${im.stroke}" stroke-width="1.5"` : '';
     let f = '';
     switch (im.kind) {
@@ -41,8 +42,8 @@ const PlantArt = (() => {
         f = ring(14, 8, 10, 22, P) + ring(11, 7, 9, 14, P, 12, 'fill-opacity=".9"') + `<circle cx="60" cy="52" r="10" fill="${Ce}"/>` + ring(6, 3, 5, 6, P, 0);
         break;
       case 'daisy':
-        f = im.big ? ring(18, 6, 15, 27, P) + `<circle cx="60" cy="52" r="17" fill="${Ce}"/><circle cx="60" cy="52" r="11" fill="${Ce}" stroke="#4a2a12" stroke-dasharray="2 3" stroke-width="2"/>`
-          : ring(14, 6, 15, 20, P) + (im.layers === 2 ? ring(12, 5, 11, 13, P, 15, 'fill-opacity=".85"') : '') + `<circle cx="60" cy="52" r="8" fill="${Ce}"/>`;
+        f = im.big ? ring(18, 6, 15, 27, P, 0, st) + `<circle cx="60" cy="52" r="17" fill="${Ce}"/><circle cx="60" cy="52" r="11" fill="${Ce}" stroke="#4a2a12" stroke-dasharray="2 3" stroke-width="2"/>`
+          : ring(14, 6, 15, 20, P, 0, st) + (im.layers === 2 ? ring(12, 5, 11, 13, P, 15, `fill-opacity=".85" ${st}`) : '') + `<circle cx="60" cy="52" r="8" fill="${Ce}"/>`;
         break;
       case 'star':
         f = ring(6, 6, 16, 15, P, 0, st) + ring(6, 5, 12, 10, P, 30, st) + `<circle cx="60" cy="52" r="5" fill="${Ce}"/>`;

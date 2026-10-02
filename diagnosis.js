@@ -219,6 +219,16 @@ const RuleBasedDiagnosisService = {
       }
     }
 
+    // กฎเฉพาะชนิดพืชจาก Plant Database (doctorHints) — เสริมกฎทั่วไป ไม่ฟันธง
+    (species && species.doctorHints || []).forEach(h => {
+      if (!h.symptoms.includes(symptom)) return;
+      const ok = Object.entries(h.when || {}).every(([q, vals]) => vals.includes(a[q]));
+      if (!ok) return;
+      causes.unshift({ title: h.title, why: h.why, speciesSpecific: true });
+      add(checks, ...(h.checks || []));
+      add(actions, ...(h.actions || []));
+    });
+
     if (!causes.length) {
       cause('ยังระบุสาเหตุที่ชัดเจนไม่ได้จากข้อมูลตอนนี้', 'อาการอาจเกิดจากหลายปัจจัยร่วมกัน ลองสังเกตต่อและบันทึกภาพไว้');
       add(checks, 'ดูดินทุกเช้าก่อนรดน้ำ', 'ดูใต้ใบหาแมลง', 'ถ่ายรูปเทียบทุก 2–3 วัน');
