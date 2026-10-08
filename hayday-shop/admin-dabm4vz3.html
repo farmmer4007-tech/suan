@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>แอดมินกระเป๋าเงิน</title>
+<style>
+:root{ --bg:#f3f1ea; --card:#fff; --ink:#22291f; --muted:#6a7265; --line:#e1ddcf; --brand:#2f7d32; --brand-ink:#fff;
+       --bad:#c0392b; --ok:#2f7d32; --warn:#b9770e; --chip:#eef3e8; }
+@media (prefers-color-scheme:dark){
+  :root{ --bg:#141a13; --card:#1d261c; --ink:#e8efe3; --muted:#9aa896; --line:#2d3a2b; --brand:#5db760; --brand-ink:#0d1a0d;
+         --bad:#ff7b6b; --ok:#6fcf73; --warn:#f0b254; --chip:#243322; }
+}
+*{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 'Noto Sans Thai','Sarabun',system-ui,sans-serif}
+.wrap{max-width:980px;margin:0 auto;padding:16px 16px 80px}
+h1{font-size:1.3rem;margin:4px 0 12px} h2{font-size:1.05rem;margin:0 0 10px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
+input,select,textarea,button{font:inherit;color:inherit}
+input,select,textarea{width:100%;padding:9px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg)}
+button{cursor:pointer;border:0;border-radius:8px;padding:8px 14px;background:var(--brand);color:var(--brand-ink);font-weight:600}
+button.ghost{background:transparent;border:1px solid var(--line);color:var(--ink);font-weight:500}
+button.bad{background:var(--bad);color:#fff}
+button.sm{padding:4px 10px;font-size:.85rem}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.row>*{flex:1 1 150px}.row>.fit{flex:0 0 auto}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.tabs button{background:var(--card);color:var(--ink);border:1px solid var(--line);font-weight:500;flex:0 0 auto}
+.tabs button.on{background:var(--brand);color:var(--brand-ink);border-color:var(--brand)}
+table{width:100%;border-collapse:collapse;font-size:.88rem} td,th{padding:6px 5px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+.muted{color:var(--muted);font-size:.86rem}
+.pill{display:inline-block;padding:1px 9px;border-radius:99px;background:var(--chip);font-size:.8rem}
+.pill.ok{color:var(--ok)}.pill.bad{color:var(--bad)}.pill.warn{color:var(--warn)}
+.msg{padding:9px 11px;border-radius:8px;margin:8px 0}
+.msg.err{background:color-mix(in srgb,var(--bad) 14%,transparent);color:var(--bad)}
+.msg.good{background:color-mix(in srgb,var(--ok) 14%,transparent);color:var(--ok)}
+.hide{display:none!important}
+.scroll{overflow-x:auto}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>💰 แอดมินกระเป๋าเงิน</h1>
+
+  <div id="vLogin" class="card">
+    <div class="row">
+      <input id="api" placeholder="ลิงก์เว็บ Apps Script (/exec)" inputmode="url">
+      <input id="pin" type="password" placeholder="SHOP_ADMIN_PIN" autocomplete="current-password">
+      <button class="fit" onclick="login()">เข้าสู่ระบบ</button>
+    </div>
+    <div id="lmsg"></div>
+    <p class="muted">PIN ตั้งใน Apps Script → Project Settings → Script properties → <b>SHOP_ADMIN_PIN</b> (ยาวอย่างน้อย 6 ตัว) ไม่เก็บ PIN ไว้ถาวร ปิดแท็บ = ออกจากระบบ</p>
+  </div>
+
+  <div id="vMain" class="hide">
+    <div class="row" style="margin-bottom:10px"><div class="muted" id="sum"></div><button class="ghost fit" onclick="refresh()">↻ รีเฟรช</button></div>
+    <div class="tabs">
+      <button id="t_top" class="on" onclick="tab('top')">คำขอเติมเงิน <span id="nPend"></span></button>
+      <button id="t_usr" onclick="tab('usr')">ลูกค้า</button>
+      <button id="t_led" onclick="tab('led')">เงินเข้า-ออก</button>
+      <button id="t_set" onclick="tab('set')">ตั้งค่าร้าน</button>
+    </div>
+    <div id="gmsg"></div>
+
+    <section id="p_top"><div class="card"><h2>คำขอเติมเงิน</h2><div class="scroll" id="topBox"></div></div></section>
+
+    <section id="p_usr" class="hide">
+      <div class="card"><h2>ลูกค้า</h2><div class="scroll" id="usrBox"></div></div>
+      <div class="card">
+        <h2>ปรับยอด / คืนเงินออเดอร์</h2>
+        <div class="row">
+          <input id="adU" placeholder="ชื่อผู้ใช้"><input id="adA" type="number" placeholder="จำนวน (+เพิ่ม / −ลด)">
+          <input id="adN" placeholder="เหตุผล"><button class="fit" onclick="adjust()">ปรับยอด</button>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <input id="rfO" placeholder="เลขออเดอร์ เช่น D261009-001"><input id="rfA" type="number" placeholder="จำนวนที่คืน (เว้นว่าง = คืนส่วนที่เหลือทั้งหมด)">
+          <input id="rfN" placeholder="เหตุผล"><button class="fit" onclick="refund()">คืนเงิน</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="p_led" class="hide"><div class="card"><h2>รายการเงินเข้า-ออกล่าสุด</h2><div class="scroll" id="ledBox"></div></div></section>
+
+    <section id="p_set" class="hide">
+      <div class="card">
+        <h2>ตั้งค่าร้าน</h2>
+        <label class="muted">ชื่อร้าน (แสดงบนหน้าลูกค้า)</label><input id="sName" maxlength="40">
+        <label class="muted" style="display:block;margin-top:8px">ข้อมูลบัญชีรับเงิน (ลูกค้าเห็นตอนเติมเงิน) เช่น พร้อมเพย์ / ธนาคาร / เลขบัญชี / ชื่อบัญชี</label>
+        <textarea id="sPay" rows="5" maxlength="800"></textarea>
+        <div style="margin-top:10px"><button onclick="saveSet()">บันทึก</button></div>
+      </div>
+    </section>
+  </div>
+</div>
+<script>
+let API = "", PIN = "", DATA = null;
+const $ = id => document.getElementById(id);
+const fmt = n => (Number(n) || 0).toLocaleString("th-TH", {maximumFractionDigits: 2});
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function msg(id, t, k){ $(id).innerHTML = t ? '<div class="msg ' + (k || "err") + '">' + esc(t) + "</div>" : ""; }
+try { $("api").value = localStorage.getItem("hd_api") || ""; } catch (e) {}
+
+async function call(action, params){
+  let r;
+  try { r = await fetch(API, {method: "POST", headers: {"Content-Type": "text/plain;charset=utf-8"},
+                              body: JSON.stringify(Object.assign({action: action, pin: PIN}, params || {}))}); }
+  catch (e) { throw new Error("ต่อเว็บไม่ได้"); }
+  const d = await r.json();
+  if (!d.ok) throw new Error(d.error || "ผิดพลาด");
+  return d;
+}
+async function login(){
+  API = $("api").value.trim(); PIN = $("pin").value;
+  if (!/^https:\/\/script\.google\.com\/.+\/exec/.test(API)) return msg("lmsg", "ลิงก์ต้องขึ้นต้น https://script.google.com/ ลงท้าย /exec");
+  try { await refresh(); try { localStorage.setItem("hd_api", API); } catch (e) {}
+        $("vLogin").classList.add("hide"); $("vMain").classList.remove("hide"); msg("lmsg", ""); }
+  catch (e) { msg("lmsg", e.message); }
+}
+async function refresh(){
+  DATA = await call("shop_admin_overview");
+  paint();
+}
+function tab(t){
+  ["top", "usr", "led", "set"].forEach(k => { $("p_" + k).classList.toggle("hide", k !== t); $("t_" + k).classList.toggle("on", k === t); });
+}
+function paint(){
+  const pend = DATA.topups.filter(t => t.status === "pending");
+  $("nPend").textContent = pend.length ? "(" + pend.length + ")" : "";
+  const total = DATA.users.reduce((s, u) => s + u.balance, 0);
+  $("sum").textContent = "ลูกค้า " + DATA.users.length + " คน · ยอดเงินในกระเป๋ารวม " + fmt(total) + " บาท · รอตรวจ " + pend.length + " รายการ";
+  const st = {pending: ["รอตรวจ", "warn"], approved: ["อนุมัติ", "ok"], rejected: ["ปฏิเสธ", "bad"]};
+  $("topBox").innerHTML = DATA.topups.length ? "<table><tr><th>เวลา</th><th>ลูกค้า</th><th class='num'>จำนวน</th><th>ข้อมูลที่แจ้ง</th><th>สถานะ</th><th></th></tr>" +
+    DATA.topups.map(t => "<tr><td>" + esc(t.time.slice(5, 16)) + "<div class='muted'>" + esc(t.id) + "</div></td><td>" + esc(t.username) + "</td><td class='num'><b>" + fmt(t.amount) + "</b></td><td>" + esc(t.info) +
+      "</td><td><span class='pill " + st[t.status][1] + "'>" + st[t.status][0] + "</span>" + (t.note ? "<div class='muted'>" + esc(t.note) + "</div>" : "") + "</td><td>" +
+      (t.status === "pending" ? "<button class='sm' data-id='" + esc(t.id) + "' onclick='decide(this.dataset.id,true)'>อนุมัติ</button> <button class='sm bad' data-id='" + esc(t.id) + "' onclick='decide(this.dataset.id,false)'>ปฏิเสธ</button>" : "") +
+      "</td></tr>").join("") + "</table>" : '<div class="muted">ยังไม่มีคำขอ</div>';
+  $("usrBox").innerHTML = DATA.users.length ? "<table><tr><th>ผู้ใช้</th><th>แท็ก</th><th class='num'>ยอดเงิน</th><th>เข้าล่าสุด</th></tr>" +
+    DATA.users.map(u => "<tr><td><b>" + esc(u.username) + "</b><div class='muted'>" + esc(u.display) + "</div></td><td>" +
+      u.tags.map(t => esc(t.tag) + " <span class='muted'>" + esc(t.name) + "</span>").join("<br>") + "</td><td class='num'>" + fmt(u.balance) + "</td><td>" + esc(u.lastLogin) + "</td></tr>").join("") + "</table>" : '<div class="muted">ยังไม่มีลูกค้า</div>';
+  const ty = {topup: "เติมเงิน", order: "สั่งของ", refund: "คืนเงิน", adjust: "ปรับยอด"};
+  $("ledBox").innerHTML = DATA.ledger.length ? "<table><tr><th>เวลา</th><th>ผู้ใช้</th><th>ประเภท</th><th class='num'>จำนวน</th><th class='num'>คงเหลือ</th><th>อ้างอิง</th></tr>" +
+    DATA.ledger.map(l => "<tr><td>" + esc(l.time.slice(5, 16)) + "</td><td>" + esc(l.username) + "</td><td>" + esc(ty[l.type] || l.type) + (l.note ? "<div class='muted'>" + esc(l.note) + "</div>" : "") +
+      "</td><td class='num' style='color:" + (l.amount >= 0 ? "var(--ok)" : "var(--bad)") + "'>" + (l.amount >= 0 ? "+" : "") + fmt(l.amount) + "</td><td class='num'>" + fmt(l.balance) + "</td><td>" + esc(l.ref) + "</td></tr>").join("") + "</table>" : '<div class="muted">ยังไม่มี</div>';
+  if (document.activeElement !== $("sName")) $("sName").value = DATA.shopName || "";
+  if (document.activeElement !== $("sPay")) $("sPay").value = DATA.payInfo || "";
+}
+async function decide(id, approve){
+  const t = DATA.topups.find(x => x.id === id);
+  if (!t) return;
+  if (!confirm((approve ? "อนุมัติ" : "ปฏิเสธ") + " " + fmt(t.amount) + " บาท ของ " + t.username + "?\n" + (approve ? "ตรวจว่าเงินเข้าบัญชีจริงแล้ว" : ""))) return;
+  let note = "";
+  if (!approve) note = prompt("เหตุผลที่ปฏิเสธ (ลูกค้าเห็น)", "") || "";
+  try { await call("shop_admin_decide", {id: id, approve: approve, note: note}); await refresh(); msg("gmsg", approve ? "อนุมัติแล้ว" : "ปฏิเสธแล้ว", "good"); }
+  catch (e) { msg("gmsg", e.message); }
+}
+async function adjust(){
+  try { const d = await call("shop_admin_adjust", {username: $("adU").value, amount: $("adA").value, note: $("adN").value});
+        await refresh(); msg("gmsg", "ปรับแล้ว ยอดใหม่ " + fmt(d.balance) + " บาท", "good"); } catch (e) { msg("gmsg", e.message); }
+}
+async function refund(){
+  try { const d = await call("shop_admin_refund", {orderId: $("rfO").value.trim(), amount: $("rfA").value, note: $("rfN").value});
+        await refresh(); msg("gmsg", "คืนเงิน " + fmt(d.refunded) + " บาท ยอดใหม่ " + fmt(d.balance), "good"); } catch (e) { msg("gmsg", e.message); }
+}
+async function saveSet(){
+  try { await call("shop_admin_settings", {shopName: $("sName").value, payInfo: $("sPay").value}); msg("gmsg", "บันทึกแล้ว", "good"); await refresh(); }
+  catch (e) { msg("gmsg", e.message); }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>สั่งของ Hay Day</title>
+<style>
+:root{
+  --bg:#f6f4ee; --card:#ffffff; --ink:#23301f; --muted:#6b7566; --line:#e2ded0;
+  --brand:#2f7d32; --brand-ink:#ffffff; --accent:#e9a23b; --bad:#c0392b; --ok:#2f7d32; --warn:#b9770e;
+  --chip:#eef3e8; --shadow:0 1px 2px rgba(0,0,0,.06),0 6px 18px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme:dark){
+  :root{ --bg:#141a13; --card:#1d261c; --ink:#e8efe3; --muted:#9aa896; --line:#2d3a2b; --brand:#5db760; --brand-ink:#0d1a0d;
+         --accent:#f0b254; --bad:#ff7b6b; --ok:#6fcf73; --warn:#f0b254; --chip:#243322; --shadow:none; }
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.5 'Noto Sans Thai','Sarabun',system-ui,-apple-system,'Segoe UI',sans-serif;
+     -webkit-text-size-adjust:100%}
+.wrap{max-width:760px;margin:0 auto;padding:16px 16px 80px}
+h1{font-size:1.35rem;margin:0}
+h2{font-size:1.1rem;margin:0 0 10px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:6px 0 14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px;box-shadow:var(--shadow)}
+.muted{color:var(--muted);font-size:.9rem}
+label{display:block;font-size:.88rem;color:var(--muted);margin:10px 0 4px}
+input,select,textarea,button{font:inherit;color:inherit}
+input,select,textarea{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg)}
+input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--brand);outline-offset:1px}
+button{cursor:pointer;border:0;border-radius:10px;padding:11px 16px;background:var(--brand);color:var(--brand-ink);font-weight:600}
+button.ghost{background:transparent;border:1px solid var(--line);color:var(--ink);font-weight:500}
+button.small{padding:6px 10px;font-size:.85rem}
+button:disabled{opacity:.5;cursor:not-allowed}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.row>*{flex:1 1 140px}
+.row>.fit{flex:0 0 auto}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.tabs button{flex:1 1 auto;padding:9px 12px;background:var(--card);color:var(--ink);border:1px solid var(--line);font-weight:500}
+.tabs button.on{background:var(--brand);color:var(--brand-ink);border-color:var(--brand)}
+.bal{font-size:1.5rem;font-weight:700}
+.pill{display:inline-block;padding:2px 10px;border-radius:99px;background:var(--chip);font-size:.82rem}
+.pill.ok{color:var(--ok)} .pill.bad{color:var(--bad)} .pill.warn{color:var(--warn)}
+.msg{padding:10px 12px;border-radius:10px;margin:10px 0;font-size:.93rem}
+.msg.err{background:color-mix(in srgb,var(--bad) 14%,transparent);color:var(--bad)}
+.msg.good{background:color-mix(in srgb,var(--ok) 14%,transparent);color:var(--ok)}
+.msg.info{background:var(--chip)}
+.item{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.item:last-child{border-bottom:0}
+.order .head{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.bar{height:8px;border-radius:99px;background:var(--chip);overflow:hidden;margin:8px 0}
+.bar>i{display:block;height:100%;background:var(--brand)}
+.hide{display:none!important}
+pre.pay{white-space:pre-wrap;word-break:break-word;background:var(--chip);padding:12px;border-radius:10px;margin:8px 0;font:inherit}
+.qbtns{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.qbtns button{padding:6px 12px;font-weight:500}
+table{width:100%;border-collapse:collapse;font-size:.9rem}
+td,th{padding:7px 4px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+@media (max-width:480px){.wrap{padding:12px 12px 80px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1 id="shopName">🌾 สั่งของ Hay Day</h1>
+    <div id="topRight" class="hide row" style="justify-content:flex-end;flex:0 0 auto">
+      <span id="whoami" class="muted fit"></span>
+      <button class="ghost small fit" onclick="logout()">ออกจากระบบ</button>
+    </div>
+  </div>
+
+  <!-- ตั้งค่าที่อยู่เว็บ (ครั้งแรก ถ้าไม่ได้ฝังไว้ในไฟล์) -->
+  <div id="vSetup" class="card hide">
+    <h2>ตั้งค่าครั้งแรก</h2>
+    <p class="muted">วางลิงก์เว็บ (Apps Script ที่ลงท้าย /exec) ที่ร้านให้ไว้ จะจำไว้ในเครื่องนี้</p>
+    <input id="apiIn" placeholder="https://script.google.com/macros/s/.../exec" inputmode="url">
+    <div style="margin-top:10px"><button onclick="saveApi()">บันทึก</button></div>
+  </div>
+
+  <!-- เข้าสู่ระบบ / สมัคร -->
+  <div id="vAuth" class="card hide">
+    <div class="tabs" style="margin-bottom:6px">
+      <button id="tLogin" class="on" onclick="authTab('login')">เข้าสู่ระบบ</button>
+      <button id="tReg" onclick="authTab('reg')">สมัครใหม่</button>
+    </div>
+    <form id="fLogin" onsubmit="return doLogin(event)">
+      <label for="lu">ชื่อผู้ใช้</label><input id="lu" autocomplete="username" autocapitalize="none" required>
+      <label for="lp">รหัสผ่าน</label><input id="lp" type="password" autocomplete="current-password" required>
+      <div style="margin-top:12px"><button type="submit" id="bLogin">เข้าสู่ระบบ</button></div>
+    </form>
+    <form id="fReg" class="hide" onsubmit="return doRegister(event)">
+      <label for="ru">ชื่อผู้ใช้ (a-z 0-9 _ ยาว 3-20)</label><input id="ru" autocomplete="username" autocapitalize="none" required>
+      <label for="rp">รหัสผ่าน (อย่างน้อย 6 ตัว)</label><input id="rp" type="password" autocomplete="new-password" minlength="6" required>
+      <label for="rd">ชื่อเรียก (ไม่ใส่ก็ได้)</label><input id="rd" maxlength="30">
+      <label for="rt">แท็กฟาร์มที่จะรับของ (เช่น #P2Y8QLG)</label><input id="rt" autocapitalize="characters" required>
+      <label for="rf">ชื่อฟาร์มในเกม — ต้องตรงกับที่เห็นในเกม</label><input id="rf" maxlength="40" required>
+      <p class="muted">แท็กและชื่อฟาร์มใช้ให้บอทแอดเพื่อนและตรวจว่าคนซื้อเป็นคุณจริง ถ้าพิมพ์ผิด ออเดอร์จะส่งไม่สำเร็จ</p>
+      <div style="margin-top:12px"><button type="submit" id="bReg">สมัครและเข้าใช้งาน</button></div>
+    </form>
+    <div id="authMsg"></div>
+  </div>
+
+  <!-- หน้าหลัก -->
+  <div id="vMain" class="hide">
+    <div class="card row" style="align-items:center">
+      <div><div class="muted">ยอดเงินคงเหลือ</div><div class="bal"><span id="balance">0</span> บาท</div></div>
+      <div class="fit"><button onclick="go('wallet')">+ เติมเงิน</button></div>
+    </div>
+    <div id="activeBanner"></div>
+    <div class="tabs">
+      <button id="tab_order" class="on" onclick="go('order')">🛒 สั่งของ</button>
+      <button id="tab_orders" onclick="go('orders')">📦 ออเดอร์ของฉัน</button>
+      <button id="tab_wallet" onclick="go('wallet')">💰 กระเป๋าเงิน</button>
+      <button id="tab_acct" onclick="go('acct')">👤 บัญชี</button>
+    </div>
+
+    <section id="p_order">
+      <div class="card">
+        <h2>สั่งของ</h2>
+        <label for="selItem">สินค้า</label>
+        <select id="selItem" onchange="calc()"></select>
+        <div id="itemInfo" class="muted" style="margin-top:6px"></div>
+        <label for="qty">จำนวน (ทวีคูณของ 500)</label>
+        <input id="qty" type="number" inputmode="numeric" min="500" step="500" value="500" oninput="calc()">
+        <div class="qbtns" id="qbtns"></div>
+        <label for="selTag">ส่งให้ฟาร์ม</label>
+        <select id="selTag"></select>
+        <div id="priceBox" class="msg info" style="margin-top:14px"></div>
+        <div id="orderMsg"></div>
+        <button id="bOrder" onclick="doOrder()" style="width:100%">สั่งซื้อ</button>
+        <p class="muted" style="margin-bottom:0">เมื่อถึงคิว บอทจะส่งคำขอเป็นเพื่อนถึงคุณในเกม — กด "รับ" แล้วของจะขึ้นที่ร้านริมทางให้ซื้อทีละถาด ตัดเงินทันทีที่สั่ง</p>
+      </div>
+    </section>
+
+    <section id="p_orders" class="hide">
+      <div id="ordersBox"></div>
+    </section>
+
+    <section id="p_wallet" class="hide">
+      <div class="card">
+        <h2>เติมเงิน</h2>
+        <div id="payInfoBox"></div>
+        <label for="tuAmt">จำนวนเงินที่โอน (บาท)</label>
+        <input id="tuAmt" type="number" inputmode="decimal" min="1" step="1">
+        <label for="tuInfo">ข้อมูลการโอน (เวลาที่โอน / 4 ตัวท้ายบัญชีต้นทาง)</label>
+        <input id="tuInfo" maxlength="120" placeholder="เช่น โอนเวลา 14:32 จากบัญชีลงท้าย 1234">
+        <div id="tuMsg"></div>
+        <button onclick="doTopup()" style="width:100%;margin-top:6px">แจ้งโอนเงิน</button>
+        <p class="muted">โอนเงินตามข้อมูลด้านบนก่อน แล้วค่อยกดแจ้ง แอดมินตรวจแล้วยอดจะเข้ากระเป๋า</p>
+      </div>
+      <div class="card"><h2>คำขอเติมเงิน</h2><div id="topupList"></div></div>
+      <div class="card"><h2>ประวัติเงินเข้า-ออก</h2><div id="ledgerList"></div></div>
+    </section>
+
+    <section id="p_acct" class="hide">
+      <div class="card">
+        <h2>แท็กฟาร์มของคุณ</h2>
+        <div id="tagList"></div>
+        <h2 style="margin-top:18px">เพิ่มแท็กใหม่</h2>
+        <label for="nt">แท็กฟาร์ม</label><input id="nt" autocapitalize="characters">
+        <label for="nf">ชื่อฟาร์มในเกม</label><input id="nf" maxlength="40">
+        <div id="tagMsg"></div>
+        <button onclick="addTag()" style="margin-top:6px">เพิ่มแท็ก</button>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+// ใส่ลิงก์เว็บ Apps Script (/exec) ตรงนี้ได้เลย ถ้าเว้นว่าง หน้าเว็บจะถามครั้งแรกแล้วจำไว้ในเครื่อง
+const API_URL = "";
+
+let API = API_URL, TOKEN = "", ME = null, CATALOG = [], TIMER = null, SHOP = {payInfo: ""};
+const $ = id => document.getElementById(id);
+const fmt = n => (Number(n) || 0).toLocaleString("th-TH", {maximumFractionDigits: 2});
+function esc(s){ return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function store(k, v){ try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} }
+function load(k){ try { return localStorage.getItem(k) || ""; } catch (e) { return ""; } }
+function show(id, on){ $(id).classList.toggle("hide", !on); }
+function note(id, text, kind){ $(id).innerHTML = text ? '<div class="msg ' + (kind || "info") + '">' + esc(text) + '</div>' : ""; }
+
+async function api(action, params){
+  let res;
+  try {
+    res = await fetch(API, {method: "POST", headers: {"Content-Type": "text/plain;charset=utf-8"},
+                            body: JSON.stringify(Object.assign({action: action, token: TOKEN}, params || {}))});
+  } catch (e) { throw new Error("ต่อเว็บไม่ได้ ตรวจอินเทอร์เน็ตแล้วลองใหม่"); }
+  let d;
+  try { d = await res.json(); } catch (e) { throw new Error("เว็บตอบกลับผิดรูปแบบ"); }
+  if (!d.ok) {
+    if (/เข้าสู่ระบบใหม่|หมดอายุ/.test(d.error || "")) { sessionEnd(); }
+    throw new Error(d.error || "ผิดพลาด");
+  }
+  return d;
+}
+
+/* ---------- เริ่มต้น ---------- */
+async function boot(){
+  if (!API) API = load("hd_api");
+  if (!API) { show("vSetup", true); return; }
+  show("vSetup", false);
+  try {
+    const d = await api("shop_info");
+    SHOP.payInfo = d.payInfo || "";
+    if (d.shopName) { $("shopName").textContent = "🌾 " + d.shopName; document.title = d.shopName; }
+  } catch (e) { show("vAuth", true); note("authMsg", e.message, "err"); return; }
+  TOKEN = load("hd_token");
+  if (TOKEN) {
+    try { ME = (await api("shop_me")).user; enter(); return; } catch (e) { TOKEN = ""; store("hd_token", null); }
+  }
+  show("vAuth", true);
+}
+function saveApi(){
+  const v = $("apiIn").value.trim();
+  if (!/^https:\/\/script\.google\.com\/.+\/exec/.test(v)) { alert("ลิงก์ต้องขึ้นต้น https://script.google.com/ และลงท้าย /exec"); return; }
+  API = v; store("hd_api", v); boot();
+}
+function authTab(t){
+  $("tLogin").classList.toggle("on", t === "login"); $("tReg").classList.toggle("on", t === "reg");
+  show("fLogin", t === "login"); show("fReg", t === "reg"); note("authMsg", "");
+}
+async function doLogin(ev){
+  ev.preventDefault(); note("authMsg", ""); $("bLogin").disabled = true;
+  try {
+    const d = await api("shop_login", {username: $("lu").value, password: $("lp").value});
+    TOKEN = d.token; ME = d.user; store("hd_token", TOKEN); enter();
+  } catch (e) { note("authMsg", e.message, "err"); }
+  $("bLogin").disabled = false; return false;
+}
+async function doRegister(ev){
+  ev.preventDefault(); note("authMsg", ""); $("bReg").disabled = true;
+  try {
+    const d = await api("shop_register", {username: $("ru").value, password: $("rp").value, display: $("rd").value,
+                                            tag: $("rt").value, farmName: $("rf").value});
+    TOKEN = d.token; ME = d.user; store("hd_token", TOKEN); enter();
+  } catch (e) { note("authMsg", e.message, "err"); }
+  $("bReg").disabled = false; return false;
+}
+function sessionEnd(){
+  TOKEN = ""; ME = null; store("hd_token", null);
+  if (TIMER) { clearInterval(TIMER); TIMER = null; }
+  show("vMain", false); show("topRight", false); show("vAuth", true);
+}
+async function logout(){ try { await api("shop_logout"); } catch (e) {} sessionEnd(); }
+
+/* ---------- หน้าหลัก ---------- */
+function enter(){
+  show("vAuth", false); show("vMain", true); show("topRight", true);
+  $("whoami").textContent = ME.display || ME.username;
+  paintMe(); go("order"); loadCatalog();
+  if (TIMER) clearInterval(TIMER);
+  TIMER = setInterval(tick, 15000);
+}
+function paintMe(){
+  $("balance").textContent = fmt(ME.balance);
+  const sel = $("selTag"), keep = sel.value;
+  sel.innerHTML = ME.tags.map(t => '<option value="' + esc(t.tag) + '">' + esc(t.tag) + " — " + esc(t.name) + "</option>").join("");
+  if (keep) sel.value = keep;
+  $("tagList").innerHTML = ME.tags.map(t =>
+    '<div class="item"><div><b>' + esc(t.tag) + '</b><div class="muted">' + esc(t.name) + '</div></div>' +
+    (ME.tags.length > 1 ? '<button class="ghost small fit" data-tag="' + esc(t.tag) + '" onclick="rmTag(this.dataset.tag)">ลบ</button>' : "") + "</div>").join("");
+  calc();
+}
+let curPage = "order";
+function go(p){
+  curPage = p;
+  ["order", "orders", "wallet", "acct"].forEach(k => { show("p_" + k, k === p); $("tab_" + k).classList.toggle("on", k === p); });
+  if (p === "orders") loadOrders();
+  if (p === "wallet") loadWallet();
+  if (p === "order") loadCatalog();
+}
+async function tick(){
+  if (document.hidden) return;
+  try {
+    ME = (await api("shop_me")).user; paintMe();
+    await loadOrders(curPage !== "orders");
+  } catch (e) {}
+}
+
+/* ---------- สั่งของ ---------- */
+async function loadCatalog(){
+  try {
+    CATALOG = (await api("shop_catalog")).items;
+    const sel = $("selItem"), keep = sel.value;
+    sel.innerHTML = CATALOG.length
+      ? CATALOG.map(i => '<option value="' + esc(i.item) + '">' + esc(i.item) + "</option>").join("")
+      : '<option value="">ตอนนี้ยังไม่มีสินค้าที่สั่งได้</option>';
+    if (keep && CATALOG.some(i => i.item === keep)) sel.value = keep;
+    calc();
+  } catch (e) { note("orderMsg", e.message, "err"); }
+}
+// ราคาเซ็ต 500 / 1,000 / 10,000 (วิธีคิดเดียวกับเว็บหลังบ้าน)
+function priceOf(c, qty){
+  if (!c || qty < 500 || qty % 500) return null;
+  let rest = qty, total = 0;
+  if (c.p10000 > 0) { total += Math.floor(rest / 10000) * c.p10000; rest %= 10000; }
+  if (c.p1000 > 0) { total += Math.floor(rest / 1000) * c.p1000; rest %= 1000; }
+  else if (rest >= 1000 && c.p500 > 0) { total += Math.floor(rest / 500) * c.p500; rest %= 500; }
+  if (rest >= 500) { if (c.p500 <= 0) return null; total += Math.floor(rest / 500) * c.p500; rest %= 500; }
+  return rest === 0 && total > 0 ? Math.round(total * 100) / 100 : null;
+}
+function calc(){
+  const c = CATALOG.find(i => i.item === $("selItem").value);
+  const qty = parseInt($("qty").value, 10) || 0;
+  const q = $("qbtns");
+  q.innerHTML = c ? [500, 1000, 5000, 10000].filter(n => n <= c.available).map(n => '<button class="ghost small" type="button" onclick="setQty(' + n + ')">' + fmt(n) + "</button>").join("") : "";
+  $("itemInfo").textContent = c
+    ? "มีของพร้อมส่ง " + fmt(c.available) + " ชิ้น · 500 ชิ้น " + fmt(c.p500) + " บาท" + (c.p1000 ? " · 1,000 ชิ้น " + fmt(c.p1000) + " บาท" : "") + (c.p10000 ? " · 10,000 ชิ้น " + fmt(c.p10000) + " บาท" : "") : "";
+  const price = priceOf(c, qty), box = $("priceBox"), btn = $("bOrder");
+  if (!c) { box.textContent = "เลือกสินค้า"; btn.disabled = true; return; }
+  if (price == null) { box.textContent = "จำนวนต้องเป็นทวีคูณของ 500"; btn.disabled = true; return; }
+  if (qty > c.available) { box.textContent = "ของเหลือ " + fmt(c.available) + " ชิ้น ลดจำนวนลง"; btn.disabled = true; return; }
+  const short = price - (ME ? ME.balance : 0);
+  box.innerHTML = "ราคารวม <b>" + fmt(price) + " บาท</b>" + (short > 0 ? ' · <span style="color:var(--bad)">ยอดไม่พอ ขาดอีก ' + fmt(short) + " บาท</span>" : "");
+  btn.disabled = short > 0;
+  btn.textContent = "สั่งซื้อ · หักเงิน " + fmt(price) + " บาท";
+}
+function setQty(n){ $("qty").value = n; calc(); }
+async function doOrder(){
+  const item = $("selItem").value, qty = parseInt($("qty").value, 10) || 0, tag = $("selTag").value;
+  const c = CATALOG.find(i => i.item === item), price = priceOf(c, qty);
+  if (price == null) return;
+  if (!confirm("ยืนยันสั่ง " + item + " " + fmt(qty) + " ชิ้น\nส่งให้ " + tag + "\nหักเงิน " + fmt(price) + " บาททันที")) return;
+  $("bOrder").disabled = true; note("orderMsg", "");
+  try {
+    const d = await api("shop_order", {item: item, qty: qty, tag: tag});
+    ME.balance = d.balance; paintMe();
+    note("orderMsg", "สั่งสำเร็จ เลขที่ " + d.orderId + " — รอบอทส่งของ ดูสถานะที่ 'ออเดอร์ของฉัน'", "good");
+    loadCatalog();
+  } catch (e) { note("orderMsg", e.message, "err"); }
+  calc();
+}
+
+/* ---------- ออเดอร์ ---------- */
+const ACTIVE = ["queued", "working", "wait_accept", "listing", "problem"];
+async function loadOrders(silent){
+  let list;
+  try { list = (await api("shop_orders")).orders; } catch (e) { if (!silent) $("ordersBox").innerHTML = '<div class="msg err">' + esc(e.message) + "</div>"; return; }
+  const act = list.filter(o => o.status === "wait_accept" || o.status === "working");
+  $("activeBanner").innerHTML = act.length
+    ? '<div class="msg" style="background:color-mix(in srgb,var(--accent) 22%,transparent)"><b>👉 ' + esc(act[0].message) + "</b></div>" : "";
+  if (silent) return;
+  $("ordersBox").innerHTML = list.length ? list.map(o => {
+    const pct = o.qty ? Math.min(100, Math.round(o.delivered * 100 / o.qty)) : 0;
+    const cls = o.status === "done" ? "ok" : (o.status === "cancelled" || o.status === "problem") ? "bad" : "warn";
+    return '<div class="card order"><div class="head"><b>' + esc(o.item) + " × " + fmt(o.qty) + '</b><span class="pill ' + cls + '">' + esc(o.statusTh) + "</span></div>" +
+      '<div class="muted">' + esc(o.id) + " · " + esc(o.created) + " · ส่งให้ " + esc(o.tag) + "</div>" +
+      '<div class="bar"><i style="width:' + pct + '%"></i></div><div class="muted">ส่งแล้ว ' + fmt(o.delivered) + " / " + fmt(o.qty) + " ชิ้น</div>" +
+      (o.message ? '<div style="margin-top:8px">' + esc(o.message) + "</div>" : "") + "</div>";
+  }).join("") : '<div class="card muted">ยังไม่มีออเดอร์</div>';
+}
+
+/* ---------- กระเป๋าเงิน ---------- */
+async function loadWallet(){
+  $("payInfoBox").innerHTML = SHOP.payInfo ? '<div class="muted">โอนเงินมาที่</div><pre class="pay">' + esc(SHOP.payInfo) + "</pre>"
+                                           : '<div class="msg info">ร้านยังไม่ได้ใส่ข้อมูลบัญชีรับเงิน ติดต่อแอดมิน</div>';
+  try {
+    const d = await api("shop_ledger");
+    const tp = {pending: ["รอตรวจ", "warn"], approved: ["อนุมัติแล้ว", "ok"], rejected: ["ไม่อนุมัติ", "bad"]};
+    $("topupList").innerHTML = d.topups.length ? d.topups.map(t =>
+      '<div class="item"><div><b>' + fmt(t.amount) + ' บาท</b><div class="muted">' + esc(t.id) + " · " + esc(t.time) + (t.note ? " · " + esc(t.note) : "") +
+      '</div></div><span class="pill ' + tp[t.status][1] + '">' + tp[t.status][0] + "</span></div>").join("") : '<div class="muted">ยังไม่มี</div>';
+    const ty = {topup: "เติมเงิน", order: "สั่งของ", refund: "คืนเงิน", adjust: "ปรับยอด"};
+    $("ledgerList").innerHTML = d.ledger.length ? "<table>" + d.ledger.map(l =>
+      "<tr><td>" + esc(l.time.slice(5, 16)) + "<div class='muted'>" + esc(ty[l.type] || l.type) + (l.note ? " · " + esc(l.note) : "") + "</div></td>" +
+      '<td class="num" style="color:' + (l.amount >= 0 ? "var(--ok)" : "var(--bad)") + '">' + (l.amount >= 0 ? "+" : "") + fmt(l.amount) +
+      "<div class='muted'>คงเหลือ " + fmt(l.balance) + "</div></td></tr>").join("") + "</table>" : '<div class="muted">ยังไม่มี</div>';
+  } catch (e) { $("ledgerList").innerHTML = '<div class="msg err">' + esc(e.message) + "</div>"; }
+}
+async function doTopup(){
+  note("tuMsg", "");
+  try {
+    const d = await api("shop_topup", {amount: $("tuAmt").value, info: $("tuInfo").value});
+    note("tuMsg", "แจ้งโอนแล้ว (" + d.id + ") รอแอดมินตรวจสอบ", "good");
+    $("tuAmt").value = ""; $("tuInfo").value = ""; loadWallet();
+  } catch (e) { note("tuMsg", e.message, "err"); }
+}
+
+/* ---------- บัญชี ---------- */
+async function addTag(){
+  note("tagMsg", "");
+  try {
+    ME = (await api("shop_add_tag", {tag: $("nt").value, farmName: $("nf").value})).user;
+    $("nt").value = ""; $("nf").value = ""; paintMe(); note("tagMsg", "เพิ่มแล้ว", "good");
+  } catch (e) { note("tagMsg", e.message, "err"); }
+}
+async function rmTag(tag){
+  if (!confirm("ลบแท็ก " + tag + " ออกจากบัญชี?")) return;
+  try { ME = (await api("shop_remove_tag", {tag: tag})).user; paintMe(); } catch (e) { note("tagMsg", e.message, "err"); }
+}
+boot();
+</script>
+</body>
+</html>
