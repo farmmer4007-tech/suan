@@ -121,13 +121,11 @@ td,th{padding:7px 4px;border-bottom:1px solid var(--line);text-align:left;vertic
         <label for="qty">จำนวน (ทวีคูณของ 500)</label>
         <input id="qty" type="number" inputmode="numeric" min="500" step="500" value="500" oninput="calc()">
         <div class="qbtns" id="qbtns"></div>
-        <label for="selTag">ฟาร์มที่เคยใช้ (เลือกเพื่อกรอกให้อัตโนมัติ)</label>
+        <label for="selTag">แท็กที่เคยใช้ (เลือกเพื่อกรอกให้อัตโนมัติ)</label>
         <select id="selTag" onchange="pickTag()"></select>
         <label for="oTag">แท็กฟาร์มที่จะรับของ (เช่น #P2Y8QLG)</label>
         <input id="oTag" autocapitalize="characters" autocomplete="off">
-        <label for="oFarm">ชื่อฟาร์มในเกม — ต้องตรงกับที่เห็นในเกม</label>
-        <input id="oFarm" maxlength="40" autocomplete="off">
-        <p class="muted">บอทใช้แท็กแอดเพื่อน และใช้ชื่อฟาร์มตรวจว่าคนซื้อเป็นคุณจริง ถ้าพิมพ์ผิดออเดอร์จะส่งไม่สำเร็จ</p>
+        <p class="muted">บอทจะใช้แท็กนี้ส่งคำขอเป็นเพื่อนในเกม ตรวจแท็กให้ถูกก่อนสั่ง ถ้าพิมพ์ผิดออเดอร์จะส่งไม่สำเร็จ</p>
         <div id="priceBox" class="msg info" style="margin-top:14px"></div>
         <div id="orderMsg"></div>
         <button id="bOrder" onclick="doOrder()" style="width:100%">สั่งซื้อ</button>
@@ -157,7 +155,7 @@ td,th{padding:7px 4px;border-bottom:1px solid var(--line);text-align:left;vertic
 
     <section id="p_acct" class="hide">
       <div class="card">
-        <h2>ฟาร์มที่เคยสั่ง</h2><p class="muted">ระบบจำแท็กจากการสั่งของไว้ให้เลือกครั้งต่อไป</p>
+        <h2>แท็กที่เคยใช้</h2><p class="muted">ระบบจำแท็กจากการสั่งของไว้ให้เลือกครั้งต่อไป</p>
         <div id="tagList"></div><div id="tagMsg"></div>
       </div>
     </section>
@@ -251,7 +249,7 @@ function enter(){
 function paintMe(){
   $("balance").textContent = fmt(ME.balance);
   const sel = $("selTag"), keep = sel.value;
-  sel.innerHTML = '<option value="">— กรอกใหม่ —</option>' + ME.tags.map(t => '<option value="' + esc(t.tag) + '">' + esc(t.tag) + " — " + esc(t.name) + "</option>").join("");
+  sel.innerHTML = '<option value="">— กรอกใหม่ —</option>' + ME.tags.map(t => '<option value="' + esc(t.tag) + '">' + esc(t.tag) + (t.name ? " — " + esc(t.name) : "") + "</option>").join("");
   if (keep) sel.value = keep;
   $("tagList").innerHTML = ME.tags.map(t =>
     '<div class="item"><div><b>' + esc(t.tag) + '</b><div class="muted">' + esc(t.name) + '</div></div>' +
@@ -260,7 +258,7 @@ function paintMe(){
 }
 function pickTag(){
   const t = ME.tags.find(x => x.tag === $("selTag").value);
-  if (t) { $("oTag").value = t.tag; $("oFarm").value = t.name; }
+  if (t) $("oTag").value = t.tag;
 }
 let curPage = "order";
 function go(p){
@@ -318,14 +316,14 @@ function calc(){
 }
 function setQty(n){ $("qty").value = n; calc(); }
 async function doOrder(){
-  const item = $("selItem").value, qty = parseInt($("qty").value, 10) || 0, tag = $("oTag").value.trim(), farm = $("oFarm").value.trim();
-  if (!tag || !farm) { note("orderMsg", "ใส่แท็กและชื่อฟาร์มที่จะรับของก่อน", "err"); return; }
+  const item = $("selItem").value, qty = parseInt($("qty").value, 10) || 0, tag = $("oTag").value.trim();
+  if (!tag) { note("orderMsg", "ใส่แท็กฟาร์มที่จะรับของก่อน", "err"); return; }
   const c = CATALOG.find(i => i.item === item), price = priceOf(c, qty);
   if (price == null) return;
-  if (!confirm("ยืนยันสั่ง " + item + " " + fmt(qty) + " ชิ้น\nส่งให้ " + tag + " (" + farm + ")\nหักเงิน " + fmt(price) + " บาททันที")) return;
+  if (!confirm("ยืนยันสั่ง " + item + " " + fmt(qty) + " ชิ้น\nส่งให้ " + tag + "\nหักเงิน " + fmt(price) + " บาททันที")) return;
   $("bOrder").disabled = true; note("orderMsg", "");
   try {
-    const d = await api("shop_order", {item: item, qty: qty, tag: tag, farmName: farm});
+    const d = await api("shop_order", {item: item, qty: qty, tag: tag});
     ME.balance = d.balance; paintMe();
     note("orderMsg", "สั่งสำเร็จ เลขที่ " + d.orderId + " — รอบอทส่งของ ดูสถานะที่ 'ออเดอร์ของฉัน'", "good");
     loadCatalog();
