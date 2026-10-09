@@ -87,6 +87,13 @@ table{width:100%;border-collapse:collapse;font-size:.88rem} td,th{padding:6px 5p
         <label class="muted">ชื่อร้าน (แสดงบนหน้าลูกค้า)</label><input id="sName" maxlength="40">
         <label class="muted" style="display:block;margin-top:8px">ข้อมูลบัญชีรับเงิน (ลูกค้าเห็นตอนเติมเงิน) เช่น พร้อมเพย์ / ธนาคาร / เลขบัญชี / ชื่อบัญชี</label>
         <textarea id="sPay" rows="5" maxlength="800"></textarea>
+        <h3 style="margin:16px 0 4px">QR พร้อมเพย์ + ตรวจสลิปอัตโนมัติ</h3>
+        <label class="muted">พร้อมเพย์รับเงิน (เบอร์มือถือ 10 หลัก / เลขบัตร 13 หลัก) — ใช้สร้าง QR ตามยอดให้ลูกค้า (เว้นว่าง = ไม่โชว์ QR)</label>
+        <input id="sPP" inputmode="numeric" maxlength="20">
+        <label class="muted" style="display:block;margin-top:8px">ชื่อบัญชีผู้รับ (ไม่บังคับ) — สลิปที่ชื่อผู้รับไม่มีคำนี้ จะส่งให้แอดมินตรวจแทนการเติมอัตโนมัติ</label>
+        <input id="sRcv" maxlength="80" placeholder="เช่น สมชาย">
+        <label class="muted" style="display:block;margin-top:8px">คีย์ API ตรวจสลิป (Thunder Solution) — <span id="sKeyState"></span><br>เว้นว่าง = ใช้คีย์เดิม · ใส่ - = ลบคีย์ (ปิดตรวจอัตโนมัติ)</label>
+        <input id="sKey" type="password" autocomplete="off" placeholder="วางคีย์ใหม่ที่นี่">
         <div style="margin-top:10px"><button onclick="saveSet()">บันทึก</button></div>
       </div>
     </section>
@@ -143,6 +150,9 @@ function paint(){
       "</td><td class='num' style='color:" + (l.amount >= 0 ? "var(--ok)" : "var(--bad)") + "'>" + (l.amount >= 0 ? "+" : "") + fmt(l.amount) + "</td><td class='num'>" + fmt(l.balance) + "</td><td>" + esc(l.ref) + "</td></tr>").join("") + "</table>" : '<div class="muted">ยังไม่มี</div>';
   if (document.activeElement !== $("sName")) $("sName").value = DATA.shopName || "";
   if (document.activeElement !== $("sPay")) $("sPay").value = DATA.payInfo || "";
+  if (document.activeElement !== $("sPP")) $("sPP").value = DATA.promptpay || "";
+  if (document.activeElement !== $("sRcv")) $("sRcv").value = DATA.receiverName || "";
+  $("sKeyState").textContent = DATA.hasThunderKey ? "✔ ตั้งคีย์แล้ว (ตรวจอัตโนมัติเปิดอยู่)" : "ยังไม่ได้ตั้ง (สลิปจะรอแอดมินตรวจ)";
 }
 async function decide(id, approve){
   const t = DATA.topups.find(x => x.id === id);
@@ -162,7 +172,8 @@ async function refund(){
         await refresh(); msg("gmsg", "คืนเงิน " + fmt(d.refunded) + " บาท ยอดใหม่ " + fmt(d.balance), "good"); } catch (e) { msg("gmsg", e.message); }
 }
 async function saveSet(){
-  try { await call("shop_admin_settings", {shopName: $("sName").value, payInfo: $("sPay").value}); msg("gmsg", "บันทึกแล้ว", "good"); await refresh(); }
+  try { await call("shop_admin_settings", {shopName: $("sName").value, payInfo: $("sPay").value,
+      promptpay: $("sPP").value, receiverName: $("sRcv").value, thunderKey: $("sKey").value.trim()}); $("sKey").value = ""; msg("gmsg", "บันทึกแล้ว", "good"); await refresh(); }
   catch (e) { msg("gmsg", e.message); }
 }
 </script>

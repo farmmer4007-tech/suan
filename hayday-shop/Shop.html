@@ -138,16 +138,35 @@ td,th{padding:7px 4px;border-bottom:1px solid var(--line);text-align:left;vertic
     </section>
 
     <section id="p_wallet" class="hide">
+      <div class="card" id="qrCard">
+        <h2>เติมเงินด้วย QR พร้อมเพย์</h2>
+        <label for="qrAmt">จำนวนเงินที่จะเติม (บาท)</label>
+        <input id="qrAmt" type="number" inputmode="decimal" min="1" step="1" placeholder="เช่น 300">
+        <div class="qbtns" id="qrQuick"></div>
+        <button onclick="makeQR()" style="width:100%;margin-top:8px">สร้าง QR</button>
+        <div id="qrBox" class="hide" style="text-align:center;margin-top:14px">
+          <div id="qrImg" style="display:inline-block;background:#fff;padding:12px;border-radius:12px"></div>
+          <div style="margin-top:8px"><b id="qrAmtTxt"></b></div>
+          <div class="muted">สแกนด้วยแอปธนาคารไหนก็ได้ ยอดเงินขึ้นให้เอง</div>
+        </div>
+        <label for="slipFile" style="margin-top:14px">โอนแล้ว แนบรูปสลิป</label>
+        <input id="slipFile" type="file" accept="image/*">
+        <div id="slipMsg"></div>
+        <button id="bSlip" onclick="sendSlip()" style="width:100%;margin-top:6px">ส่งสลิป</button>
+        <p class="muted" id="slipNote">ระบบตรวจสลิปให้อัตโนมัติ ผ่านแล้วยอดเข้ากระเป๋าทันที (1 สลิปใช้ได้ครั้งเดียว)</p>
+      </div>
       <div class="card">
-        <h2>เติมเงิน</h2>
-        <div id="payInfoBox"></div>
-        <label for="tuAmt">จำนวนเงินที่โอน (บาท)</label>
-        <input id="tuAmt" type="number" inputmode="decimal" min="1" step="1">
-        <label for="tuInfo">ข้อมูลการโอน (เวลาที่โอน / 4 ตัวท้ายบัญชีต้นทาง)</label>
-        <input id="tuInfo" maxlength="120" placeholder="เช่น โอนเวลา 14:32 จากบัญชีลงท้าย 1234">
-        <div id="tuMsg"></div>
-        <button onclick="doTopup()" style="width:100%;margin-top:6px">แจ้งโอนเงิน</button>
-        <p class="muted">โอนเงินตามข้อมูลด้านบนก่อน แล้วค่อยกดแจ้ง แอดมินตรวจแล้วยอดจะเข้ากระเป๋า</p>
+        <details id="manualBox">
+          <summary style="cursor:pointer"><b>โอนแบบอื่น / ไม่มีสลิป</b></summary>
+          <div id="payInfoBox"></div>
+          <label for="tuAmt">จำนวนเงินที่โอน (บาท)</label>
+          <input id="tuAmt" type="number" inputmode="decimal" min="1" step="1">
+          <label for="tuInfo">ข้อมูลการโอน (เวลาที่โอน / 4 ตัวท้ายบัญชีต้นทาง)</label>
+          <input id="tuInfo" maxlength="120" placeholder="เช่น โอนเวลา 14:32 จากบัญชีลงท้าย 1234">
+          <div id="tuMsg"></div>
+          <button onclick="doTopup()" style="width:100%;margin-top:6px">แจ้งโอนเงิน</button>
+          <p class="muted">โอนเงินตามข้อมูลด้านบนก่อน แล้วค่อยกดแจ้ง แอดมินตรวจแล้วยอดจะเข้ากระเป๋า</p>
+        </details>
       </div>
       <div class="card"><h2>คำขอเติมเงิน</h2><div id="topupList"></div></div>
       <div class="card"><h2>ประวัติเงินเข้า-ออก</h2><div id="ledgerList"></div></div>
@@ -162,6 +181,7 @@ td,th{padding:7px 4px;border-bottom:1px solid var(--line);text-align:left;vertic
   </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
 // ใส่ลิงก์เว็บ Apps Script (/exec) ตรงนี้ได้เลย ถ้าเว้นว่าง หน้าเว็บจะถามครั้งแรกแล้วจำไว้ในเครื่อง
 const API_URL = "https://script.google.com/macros/s/AKfycbz1sV136LlCAUA4Lmxr8DDmM7FQdKQ-V7IBizemnuuO3zIyBtL6hrq_i6UjCFXd_Vl8HA/exec";
@@ -198,6 +218,7 @@ async function boot(){
   try {
     const d = await api("shop_info");
     SHOP.payInfo = d.payInfo || "";
+    SHOP.promptpay = d.promptpay || ""; SHOP.autoSlip = !!d.autoSlip;
     if (d.shopName) { $("shopName").textContent = "🌾 " + d.shopName; document.title = d.shopName; }
   } catch (e) { show("vAuth", true); note("authMsg", e.message, "err"); return; }
   TOKEN = load("hd_token");
@@ -350,8 +371,75 @@ async function loadOrders(silent){
   }).join("") : '<div class="card muted">ยังไม่มีออเดอร์</div>';
 }
 
+/* ---------- QR พร้อมเพย์ + สลิป ---------- */
+function crc16(s){ let c = 0xFFFF; for (let i = 0; i < s.length; i++){ c ^= s.charCodeAt(i) << 8; for (let j = 0; j < 8; j++){ c = (c & 0x8000) ? ((c << 1) ^ 0x1021) : (c << 1); c &= 0xFFFF; } } return c.toString(16).toUpperCase().padStart(4, "0"); }
+function ppPayload(id, amount){
+  const f = (t, v) => t + String(v.length).padStart(2, "0") + v;
+  let acc = String(id).replace(/\D/g, ""), sub;
+  if (acc.length >= 15) sub = f("03", acc);                  // e-Wallet
+  else if (acc.length >= 13) sub = f("02", acc);             // เลขบัตร / เลขผู้เสียภาษี
+  else sub = f("01", ("0000000000000" + acc.replace(/^0/, "66")).slice(-13));   // เบอร์มือถือ
+  const p = f("00", "01") + f("01", amount ? "12" : "11") + f("29", f("00", "A000000677010111") + sub) +
+            f("58", "TH") + f("53", "764") + (amount ? f("54", amount.toFixed(2)) : "") + "6304";
+  return p + crc16(p);
+}
+function makeQR(){
+  const amt = Math.round((parseFloat($("qrAmt").value) || 0) * 100) / 100;
+  if (!(amt >= 1)) { note("slipMsg", "ใส่จำนวนเงินก่อน", "err"); return; }
+  if (!SHOP.promptpay) { note("slipMsg", "ร้านยังไม่ได้ตั้งพร้อมเพย์", "err"); return; }
+  note("slipMsg", "");
+  $("qrImg").innerHTML = "";
+  try {
+    new QRCode($("qrImg"), {text: ppPayload(SHOP.promptpay, amt), width: 220, height: 220, correctLevel: QRCode.CorrectLevel.M});
+  } catch (e) { note("slipMsg", "สร้าง QR ไม่ได้ (โหลดตัวสร้าง QR ไม่สำเร็จ) ลองรีเฟรชหน้า", "err"); return; }
+  $("qrAmtTxt").textContent = "ยอดโอน " + fmt(amt) + " บาท";
+  show("qrBox", true);
+}
+function shrinkImage(file){
+  return new Promise((ok, bad) => {
+    const fr = new FileReader();
+    fr.onerror = () => bad(new Error("อ่านไฟล์ไม่ได้"));
+    fr.onload = () => {
+      const im = new Image();
+      im.onerror = () => bad(new Error("ไฟล์นี้ไม่ใช่รูป"));
+      im.onload = () => {
+        const k = Math.min(1, 1400 / Math.max(im.width, im.height));
+        const c = document.createElement("canvas");
+        c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
+        const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height); g.drawImage(im, 0, 0, c.width, c.height);
+        ok(c.toDataURL("image/jpeg", 0.88));
+      };
+      im.src = fr.result;
+    };
+    fr.readAsDataURL(file);
+  });
+}
+async function sendSlip(){
+  const f = $("slipFile").files[0];
+  if (!f) { note("slipMsg", "เลือกรูปสลิปก่อน", "err"); return; }
+  $("bSlip").disabled = true; note("slipMsg", "กำลังตรวจสลิป...", "info");
+  try {
+    const slip = await shrinkImage(f);
+    const d = await api("shop_topup_slip", {slip: slip, amount: $("qrAmt").value});
+    if (d.status === "approved") {
+      note("slipMsg", "✔ เติมเงิน " + fmt(d.amount) + " บาท เข้ากระเป๋าแล้ว", "good");
+      ME.balance = d.balance; paintMe();
+    } else {
+      note("slipMsg", "ส่งสลิปแล้ว (" + d.id + ") รอแอดมินตรวจ" + (d.why ? " — " + d.why : ""), "info");
+    }
+    $("slipFile").value = ""; show("qrBox", false); loadWallet();
+  } catch (e) { note("slipMsg", e.message, "err"); }
+  $("bSlip").disabled = false;
+}
+
 /* ---------- กระเป๋าเงิน ---------- */
 async function loadWallet(){
+  show("qrCard", !!SHOP.promptpay);
+  if (!SHOP.promptpay) $("manualBox").open = true;
+  $("slipNote").textContent = SHOP.autoSlip ? "ระบบตรวจสลิปให้อัตโนมัติ ผ่านแล้วยอดเข้ากระเป๋าทันที (1 สลิปใช้ได้ครั้งเดียว)"
+                                            : "ส่งสลิปแล้วแอดมินจะตรวจและเติมยอดให้";
+  if (!$("qrQuick").innerHTML) $("qrQuick").innerHTML = [100, 300, 500, 1000].map(n =>
+    '<button class="ghost small" onclick="$(\'qrAmt\').value=' + n + '">' + n + "</button>").join("");
   $("payInfoBox").innerHTML = SHOP.payInfo ? '<div class="muted">โอนเงินมาที่</div><pre class="pay">' + esc(SHOP.payInfo) + "</pre>"
                                            : '<div class="msg info">ร้านยังไม่ได้ใส่ข้อมูลบัญชีรับเงิน ติดต่อแอดมิน</div>';
   try {
