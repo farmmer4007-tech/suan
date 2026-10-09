@@ -24,6 +24,7 @@ h2{font-size:1.1rem;margin:0 0 10px}
 .top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:6px 0 14px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px;box-shadow:var(--shadow)}
 .muted{color:var(--muted);font-size:.9rem}
+.qpos{margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--chip)}
 label{display:block;font-size:.88rem;color:var(--muted);margin:10px 0 4px}
 input,select,textarea,button{font:inherit;color:inherit}
 input,select,textarea{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg)}
@@ -358,8 +359,10 @@ async function loadOrders(silent){
   let list;
   try { list = (await api("shop_orders")).orders; } catch (e) { if (!silent) $("ordersBox").innerHTML = '<div class="msg err">' + esc(e.message) + "</div>"; return; }
   const act = list.filter(o => o.status === "wait_accept" || o.status === "working");
+  const qd = list.filter(o => o.status === "queued" && o.queuePos != null).sort((a, b) => a.queuePos - b.queuePos)[0];
   $("activeBanner").innerHTML = act.length
-    ? '<div class="msg" style="background:color-mix(in srgb,var(--accent) 22%,transparent)"><b>👉 ' + esc(act[0].message) + "</b></div>" : "";
+    ? '<div class="msg" style="background:color-mix(in srgb,var(--accent) 22%,transparent)"><b>👉 ' + esc(act[0].message) + "</b></div>"
+    : qd ? '<div class="msg info">🕒 ' + queueText(qd) + "</div>" : "";
   if (silent) return;
   $("ordersBox").innerHTML = list.length ? list.map(o => {
     const pct = o.qty ? Math.min(100, Math.round(o.delivered * 100 / o.qty)) : 0;
@@ -367,8 +370,14 @@ async function loadOrders(silent){
     return '<div class="card order"><div class="head"><b>' + esc(o.item) + " × " + fmt(o.qty) + '</b><span class="pill ' + cls + '">' + esc(o.statusTh) + "</span></div>" +
       '<div class="muted">' + esc(o.id) + " · " + esc(o.created) + " · ส่งให้ " + esc(o.tag) + "</div>" +
       '<div class="bar"><i style="width:' + pct + '%"></i></div><div class="muted">ส่งแล้ว ' + fmt(o.delivered) + " / " + fmt(o.qty) + " ชิ้น</div>" +
+      (o.status === "queued" && o.queuePos != null ? '<div class="qpos">' + queueText(o) + "</div>" : "") +
       (o.message ? '<div style="margin-top:8px">' + esc(o.message) + "</div>" : "") + "</div>";
   }).join("") : '<div class="card muted">ยังไม่มีออเดอร์</div>';
+}
+function queueText(o){
+  if (o.queuePos === 0) return "<b>ถึงคิวคุณแล้ว</b> — บอทกำลังส่งออเดอร์อื่นของคุณอยู่ ออเดอร์นี้ส่งต่อทันที";
+  return "คุณอยู่<b>คิวที่ " + o.queuePos + "</b>" + (o.queueAhead ? " · รออีก <b>" + o.queueAhead + "</b> คิวก่อนถึงคุณ" : " · <b>คิวถัดไป</b>") +
+         '<div class="muted">ลำดับอาจขยับได้ ถ้าลูกค้าก่อนหน้าไม่กดรับเพื่อน จะถูกย้ายไปท้ายคิว</div>';
 }
 
 /* ---------- QR พร้อมเพย์ + สลิป ---------- */
