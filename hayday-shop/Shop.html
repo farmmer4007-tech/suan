@@ -59,6 +59,22 @@ table{width:100%;border-collapse:collapse;font-size:.9rem}
 td,th{padding:7px 4px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
 .num{text-align:right;font-variant-numeric:tabular-nums}
 @media (max-width:480px){.wrap{padding:12px 12px 80px}}
+.guide-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;z-index:50;padding:12px}
+@media (min-width:600px){.guide-bg{align-items:center}}
+.guide-bg.hide{display:none}
+.guide{background:var(--card);color:var(--ink);border-radius:18px;max-width:520px;width:100%;padding:20px 18px 16px;box-shadow:0 10px 40px rgba(0,0,0,.25);max-height:88vh;overflow:auto}
+.guide .gi{font-size:2.6rem;line-height:1;margin-bottom:6px}
+.guide h3{margin:0 0 8px;font-size:1.15rem}
+.guide ul{margin:6px 0 0;padding-left:20px}
+.guide li{margin:4px 0}
+.guide .dots{display:flex;gap:6px;justify-content:center;margin:14px 0 10px}
+.guide .dots i{width:8px;height:8px;border-radius:50%;background:var(--line)}
+.guide .dots i.on{background:var(--brand);width:20px;border-radius:4px}
+.guide .gbtns{display:flex;gap:8px}
+.guide .gbtns button{flex:1}
+.steps3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0 0 4px;text-align:center;font-size:.85rem}
+.steps3 div{background:var(--chip);border-radius:10px;padding:8px 4px}
+.steps3 b{display:block;font-size:1.3rem}
 </style>
 </head>
 <body>
@@ -67,6 +83,7 @@ td,th{padding:7px 4px;border-bottom:1px solid var(--line);text-align:left;vertic
     <h1 id="shopName">🌾 สั่งของ Hay Day</h1>
     <div id="topRight" class="hide row" style="justify-content:flex-end;flex:0 0 auto">
       <span id="whoami" class="muted fit"></span>
+      <button class="ghost small fit" onclick="openGuide(0)">📖 วิธีใช้</button>
       <button class="ghost small fit" onclick="logout()">ออกจากระบบ</button>
     </div>
   </div>
@@ -81,6 +98,10 @@ td,th{padding:7px 4px;border-bottom:1px solid var(--line);text-align:left;vertic
 
   <!-- เข้าสู่ระบบ / สมัคร -->
   <div id="vAuth" class="card hide">
+    <div class="steps3" aria-label="ขั้นตอนสั่งของ">
+      <div><b>💰</b>1. เติมเงิน</div><div><b>🛒</b>2. สั่งของ</div><div><b>🤝</b>3. รับเพื่อน + ซื้อในเกม</div>
+    </div>
+    <p class="muted" style="margin:4px 0 12px">สมัครฟรี ใช้แค่ชื่อผู้ใช้กับรหัสผ่าน · <a href="#" onclick="openGuide(0);return false">ดูวิธีใช้ทั้งหมด</a></p>
     <div class="tabs" style="margin-bottom:6px">
       <button id="tLogin" class="on" onclick="authTab('login')">เข้าสู่ระบบ</button>
       <button id="tReg" onclick="authTab('reg')">สมัครใหม่</button>
@@ -182,6 +203,17 @@ td,th{padding:7px 4px;border-bottom:1px solid var(--line);text-align:left;vertic
   </div>
 </div>
 
+<div id="guideBg" class="guide-bg hide" onclick="if(event.target===this)closeGuide()">
+  <div class="guide" role="dialog" aria-modal="true" aria-labelledby="gTitle">
+    <div id="gBody"></div>
+    <div class="dots" id="gDots"></div>
+    <div class="gbtns">
+      <button class="ghost" id="gBack" onclick="stepGuide(-1)">ย้อนกลับ</button>
+      <button id="gNext" onclick="stepGuide(1)">ถัดไป</button>
+    </div>
+    <div style="text-align:center;margin-top:8px"><a href="#" class="muted" onclick="closeGuide();return false">ข้ามคำแนะนำ</a></div>
+  </div>
+</div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
 // ใส่ลิงก์เว็บ Apps Script (/exec) ตรงนี้ได้เลย ถ้าเว้นว่าง หน้าเว็บจะถามครั้งแรกแล้วจำไว้ในเครื่อง
@@ -219,7 +251,7 @@ async function boot(){
   try {
     const d = await api("shop_info");
     SHOP.payInfo = d.payInfo || "";
-    SHOP.promptpay = d.promptpay || ""; SHOP.autoSlip = !!d.autoSlip;
+    SHOP.promptpay = d.promptpay || ""; SHOP.autoSlip = !!d.autoSlip; SHOP.contact = d.contact || "";
     if (d.shopName) { $("shopName").textContent = "🌾 " + d.shopName; document.title = d.shopName; }
   } catch (e) { show("vAuth", true); note("authMsg", e.message, "err"); return; }
   TOKEN = load("hd_token");
@@ -245,11 +277,12 @@ async function doLogin(ev){
   } catch (e) { note("authMsg", e.message, "err"); }
   $("bLogin").disabled = false; return false;
 }
+let JUST_REGISTERED = false;
 async function doRegister(ev){
   ev.preventDefault(); note("authMsg", ""); $("bReg").disabled = true;
   try {
     const d = await api("shop_register", {username: $("ru").value, password: $("rp").value, display: $("rd").value});
-    TOKEN = d.token; ME = d.user; store("hd_token", TOKEN); enter();
+    TOKEN = d.token; ME = d.user; store("hd_token", TOKEN); JUST_REGISTERED = true; enter();
   } catch (e) { note("authMsg", e.message, "err"); }
   $("bReg").disabled = false; return false;
 }
@@ -263,6 +296,7 @@ async function logout(){ try { await api("shop_logout"); } catch (e) {} sessionE
 /* ---------- หน้าหลัก ---------- */
 function enter(){
   show("vAuth", false); show("vMain", true); show("topRight", true);
+  if (JUST_REGISTERED || !load("hd_guided")) { JUST_REGISTERED = false; setTimeout(() => openGuide(0), 300); }
   $("whoami").textContent = ME.display || ME.username;
   paintMe(); go("order"); loadCatalog();
   if (TIMER) clearInterval(TIMER);
@@ -476,6 +510,45 @@ async function doTopup(){
     note("tuMsg", "แจ้งโอนแล้ว (" + d.id + ") รอแอดมินตรวจสอบ", "good");
     $("tuAmt").value = ""; $("tuInfo").value = ""; loadWallet();
   } catch (e) { note("tuMsg", e.message, "err"); }
+}
+
+/* ---------- คำแนะนำการใช้งาน ---------- */
+const GUIDE = [
+  {i: "👋", t: "ยินดีต้อนรับ", b: () => "<p>สั่งของ Hay Day ที่นี่ได้ตลอด ระบบส่งของให้อัตโนมัติผ่าน <b>ร้านริมทาง</b> ในเกม</p>" +
+     "<ul><li>💰 เติมเงินเข้ากระเป๋า</li><li>🛒 เลือกของ + ใส่แท็กฟาร์มที่จะรับ</li><li>🕒 รอคิว (ดูลำดับคิวได้ในเว็บ)</li><li>🤝 กดรับเพื่อนในเกม แล้วซื้อของที่ร้านริมทาง</li></ul>"},
+  {i: "💰", t: "1. เติมเงิน", b: () => "<ul><li>ไปแท็บ <b>กระเป๋าเงิน</b> (หรือปุ่ม <b>+ เติมเงิน</b>)</li>" +
+     (SHOP.promptpay ? "<li>ใส่ยอด → กด <b>สร้าง QR</b> → สแกนจ่ายในแอปธนาคาร</li><li>แนบรูปสลิป → กด <b>ส่งสลิป</b>" +
+       (SHOP.autoSlip ? " ระบบตรวจให้อัตโนมัติ ยอดเข้าทันที" : " แอดมินตรวจแล้วยอดเข้า") + "</li><li>ใส่ยอดให้ตรงกับที่โอนจริง · สลิป 1 ใบใช้ได้ครั้งเดียว</li>"
+                     : "<li>โอนเงินตามบัญชีของร้าน แล้วกด <b>แจ้งโอนเงิน</b> แอดมินตรวจแล้วยอดเข้ากระเป๋า</li>") + "</ul>"},
+  {i: "🛒", t: "2. สั่งของ", b: () => "<ul><li>แท็บ <b>สั่งของ</b> → เลือกสินค้า</li><li>จำนวนเป็น <b>ทวีคูณของ 500</b> (500, 1,000, 1,500 …)</li>" +
+     "<li>ใส่ <b>แท็กฟาร์มของคุณ</b> เช่น #P2Y8QLG (ในเกม: ปุ่มเพื่อน → สมุดเพื่อน จะเห็นแท็กของคุณ) — ใส่ผิดจะส่งของไม่ได้</li><li>กดสั่งซื้อ ระบบหักเงินจากกระเป๋าทันที</li></ul>"},
+  {i: "🕒", t: "3. รอคิว", b: () => "<ul><li>แท็บ <b>ออเดอร์ของฉัน</b> บอกว่าคุณอยู่ <b>คิวที่เท่าไร</b> และสถานะล่าสุด</li>" +
+     "<li>ถึงคิวแล้ว ด้านบนของเว็บจะขึ้นแถบสีส้ม 👉 ให้เข้าเกม</li><li>เปิดเว็บค้างไว้ได้ หน้าเว็บอัปเดตเอง</li></ul>"},
+  {i: "🤝", t: "4. กดรับเพื่อน", b: () => "<ul><li>ฟาร์มของร้านจะส่ง <b>คำขอเป็นเพื่อน</b> ไปที่แท็กของคุณ — เปิดเกม → สมุดเพื่อน → คำขอ → กด <b>รับ</b></li>" +
+     "<li>⚠️ ต้องรับภายใน <b>5 นาที</b> ไม่งั้นจะถูกย้ายไปท้ายคิว</li><li>⚠️ ไม่รับเพื่อนเลยจนครบ <b>4 ชั่วโมง</b> ออเดอร์จะถูกยกเลิก <b>ไม่คืนเงิน</b></li>" +
+     "<li>ออเดอร์ใหญ่อาจส่งจากหลายฟาร์ม ให้รับเพื่อนทุกฟาร์มที่ขึ้นในเว็บ</li></ul>"},
+  {i: "🧺", t: "5. ซื้อของที่ร้านริมทาง", b: () => "<ul><li>เข้าฟาร์มของร้านที่เป็นเพื่อน → แตะ <b>ร้านริมทาง</b> → ซื้อ <b>ทุกถาด</b> ที่วางไว้</li>" +
+     "<li>ซื้อไปเรื่อย ๆ ร้านจะวางถาดใหม่ให้จนครบจำนวน</li><li>ถ้าไม่ซื้อเกิน 5 นาที ระบบจะพักออเดอร์ไว้</li><li>ส่งครบแล้ว ร้านจะลบเพื่อนออกเอง</li></ul>"},
+  {i: "✅", t: "พร้อมแล้ว!", b: () => "<p>กดปุ่ม <b>📖 วิธีใช้</b> ด้านบนเพื่อเปิดคำแนะนำนี้ได้ทุกเมื่อ</p>" +
+     (SHOP.contact ? '<p class="muted">ติดต่อร้าน:</p><pre class="pay">' + esc(SHOP.contact) + "</pre>" : "")}
+];
+let gStep = 0;
+function openGuide(n){ gStep = n || 0; drawGuide(); show("guideBg", true); }
+function closeGuide(){ show("guideBg", false); store("hd_guided", "1"); }
+function stepGuide(d){
+  if (d > 0 && gStep === GUIDE.length - 1) {
+    closeGuide();
+    if (ME && !(ME.balance > 0)) go("wallet");
+    return;
+  }
+  gStep = Math.max(0, Math.min(GUIDE.length - 1, gStep + d)); drawGuide();
+}
+function drawGuide(){
+  const g = GUIDE[gStep];
+  $("gBody").innerHTML = '<div class="gi">' + g.i + '</div><h3 id="gTitle">' + g.t + "</h3>" + g.b();
+  $("gDots").innerHTML = GUIDE.map((_, i) => '<i class="' + (i === gStep ? "on" : "") + '"></i>').join("");
+  $("gBack").style.visibility = gStep ? "visible" : "hidden";
+  $("gNext").textContent = gStep === GUIDE.length - 1 ? (ME && !(ME.balance > 0) ? "ไปเติมเงินเลย" : "เริ่มใช้งาน") : "ถัดไป";
 }
 
 /* ---------- บัญชี ---------- */

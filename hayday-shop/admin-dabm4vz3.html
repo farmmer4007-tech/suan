@@ -87,6 +87,8 @@ table{width:100%;border-collapse:collapse;font-size:.88rem} td,th{padding:6px 5p
         <label class="muted">ชื่อร้าน (แสดงบนหน้าลูกค้า)</label><input id="sName" maxlength="40">
         <label class="muted" style="display:block;margin-top:8px">ข้อมูลบัญชีรับเงิน (ลูกค้าเห็นตอนเติมเงิน) เช่น พร้อมเพย์ / ธนาคาร / เลขบัญชี / ชื่อบัญชี</label>
         <textarea id="sPay" rows="5" maxlength="800"></textarea>
+        <label class="muted" style="display:block;margin-top:8px">ช่องทางติดต่อร้าน (ลูกค้าเห็นในหน้าวิธีใช้) เช่น LINE / Facebook</label>
+        <textarea id="sContact" rows="2" maxlength="300"></textarea>
         <h3 style="margin:16px 0 4px">QR พร้อมเพย์ + ตรวจสลิปอัตโนมัติ</h3>
         <label class="muted">พร้อมเพย์รับเงิน (เบอร์มือถือ 10 หลัก / เลขบัตร 13 หลัก) — ใช้สร้าง QR ตามยอดให้ลูกค้า (เว้นว่าง = ไม่โชว์ QR)</label>
         <input id="sPP" inputmode="numeric" maxlength="20">
@@ -155,6 +157,7 @@ function paint(){
   if (document.activeElement !== $("sName")) $("sName").value = DATA.shopName || "";
   if (document.activeElement !== $("sPay")) $("sPay").value = DATA.payInfo || "";
   if (document.activeElement !== $("sPP")) $("sPP").value = DATA.promptpay || "";
+  if (document.activeElement !== $("sContact")) $("sContact").value = DATA.contact || "";
   if (document.activeElement !== $("sRcv")) $("sRcv").value = DATA.receiverName || "";
   try { $("tLast").textContent = DATA.thunderLast ? JSON.stringify(JSON.parse(DATA.thunderLast), null, 2) : "ยังไม่มี"; } catch (e) { $("tLast").textContent = DATA.thunderLast || "ยังไม่มี"; }
   $("sKeyState").textContent = DATA.hasThunderKey ? "✔ ตั้งคีย์แล้ว (ตรวจอัตโนมัติเปิดอยู่)" : "ยังไม่ได้ตั้ง (สลิปจะรอแอดมินตรวจ)";
@@ -178,7 +181,7 @@ async function refund(){
 }
 async function saveSet(){
   try { await call("shop_admin_settings", {shopName: $("sName").value, payInfo: $("sPay").value,
-      promptpay: $("sPP").value, receiverName: $("sRcv").value, thunderKey: $("sKey").value.trim()}); $("sKey").value = ""; msg("gmsg", "บันทึกแล้ว", "good"); await refresh(); }
+      promptpay: $("sPP").value, contact: $("sContact").value, receiverName: $("sRcv").value, thunderKey: $("sKey").value.trim()}); $("sKey").value = ""; msg("gmsg", "บันทึกแล้ว", "good"); await refresh(); }
   catch (e) { msg("gmsg", e.message); }
 }
 async function testThunder(){
