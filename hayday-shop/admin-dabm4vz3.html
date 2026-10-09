@@ -94,7 +94,11 @@ table{width:100%;border-collapse:collapse;font-size:.88rem} td,th{padding:6px 5p
         <input id="sRcv" maxlength="80" placeholder="เช่น สมชาย">
         <label class="muted" style="display:block;margin-top:8px">คีย์ API ตรวจสลิป (Thunder Solution) — <span id="sKeyState"></span><br>เว้นว่าง = ใช้คีย์เดิม · ใส่ - = ลบคีย์ (ปิดตรวจอัตโนมัติ)</label>
         <input id="sKey" type="password" autocomplete="off" placeholder="วางคีย์ใหม่ที่นี่">
-        <div style="margin-top:10px"><button onclick="saveSet()">บันทึก</button></div>
+        <div style="margin-top:10px"><button onclick="saveSet()">บันทึก</button>
+          <button onclick="testThunder()" style="margin-left:6px">ทดสอบการเชื่อมต่อ Thunder</button></div>
+        <div id="tmsg"></div>
+        <details style="margin-top:10px"><summary class="muted" style="cursor:pointer">โครงสร้างผลตอบกลับล่าสุดจาก Thunder (ซ่อนค่าข้อความแล้ว)</summary>
+          <pre id="tLast" style="white-space:pre-wrap;font-size:12px;max-height:320px;overflow:auto"></pre></details>
       </div>
     </section>
   </div>
@@ -152,6 +156,7 @@ function paint(){
   if (document.activeElement !== $("sPay")) $("sPay").value = DATA.payInfo || "";
   if (document.activeElement !== $("sPP")) $("sPP").value = DATA.promptpay || "";
   if (document.activeElement !== $("sRcv")) $("sRcv").value = DATA.receiverName || "";
+  try { $("tLast").textContent = DATA.thunderLast ? JSON.stringify(JSON.parse(DATA.thunderLast), null, 2) : "ยังไม่มี"; } catch (e) { $("tLast").textContent = DATA.thunderLast || "ยังไม่มี"; }
   $("sKeyState").textContent = DATA.hasThunderKey ? "✔ ตั้งคีย์แล้ว (ตรวจอัตโนมัติเปิดอยู่)" : "ยังไม่ได้ตั้ง (สลิปจะรอแอดมินตรวจ)";
 }
 async function decide(id, approve){
@@ -175,6 +180,11 @@ async function saveSet(){
   try { await call("shop_admin_settings", {shopName: $("sName").value, payInfo: $("sPay").value,
       promptpay: $("sPP").value, receiverName: $("sRcv").value, thunderKey: $("sKey").value.trim()}); $("sKey").value = ""; msg("gmsg", "บันทึกแล้ว", "good"); await refresh(); }
   catch (e) { msg("gmsg", e.message); }
+}
+async function testThunder(){
+  msg("tmsg", "กำลังทดสอบ...", "good");
+  try { const d = await call("shop_admin_thunder_test", {}); msg("tmsg", d.result, /ใช้งานได้/.test(d.result) ? "good" : "err"); await refresh(); }
+  catch (e) { msg("tmsg", e.message, "err"); }
 }
 </script>
 </body>

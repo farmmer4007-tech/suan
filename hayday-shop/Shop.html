@@ -416,13 +416,18 @@ function shrinkImage(file){
 }
 async function sendSlip(){
   const f = $("slipFile").files[0];
+  const amt = parseFloat($("qrAmt").value) || 0;
+  if (!(amt >= 1)) { note("slipMsg", "ใส่จำนวนเงินที่โอน (ยอดเดียวกับที่สร้าง QR) ก่อน", "err"); return; }
   if (!f) { note("slipMsg", "เลือกรูปสลิปก่อน", "err"); return; }
+  if (!/^image\//.test(f.type)) { note("slipMsg", "ไฟล์นี้ไม่ใช่รูป", "err"); return; }
+  if (f.size > 15 * 1024 * 1024) { note("slipMsg", "รูปใหญ่เกินไป", "err"); return; }
   $("bSlip").disabled = true; note("slipMsg", "กำลังตรวจสลิป...", "info");
   try {
     const slip = await shrinkImage(f);
     const d = await api("shop_topup_slip", {slip: slip, amount: $("qrAmt").value});
     if (d.status === "approved") {
-      note("slipMsg", "✔ เติมเงิน " + fmt(d.amount) + " บาท เข้ากระเป๋าแล้ว", "good");
+      note("slipMsg", "✔ เติมเงิน " + fmt(d.amount) + " บาท เข้ากระเป๋าแล้ว" +
+           (d.slip ? " (เลขอ้างอิง " + d.slip.transRef + (d.slip.sender ? " · จาก " + d.slip.sender : "") + ")" : ""), "good");
       ME.balance = d.balance; paintMe();
     } else {
       note("slipMsg", "ส่งสลิปแล้ว (" + d.id + ") รอแอดมินตรวจ" + (d.why ? " — " + d.why : ""), "info");
