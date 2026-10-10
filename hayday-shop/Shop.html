@@ -141,14 +141,15 @@ td,th{padding:7px 4px;border-bottom:1px solid var(--line);text-align:left;vertic
         <label for="selItem">สินค้า</label>
         <select id="selItem" onchange="calc()"></select>
         <div id="itemInfo" class="muted" style="margin-top:6px"></div>
-        <label for="qty">จำนวน (ทวีคูณของ 500)</label>
+        <label for="qty">จำนวนต่อแท็ก (ทวีคูณของ 500)</label>
         <input id="qty" type="number" inputmode="numeric" min="500" step="500" value="500" oninput="calc()">
         <div class="qbtns" id="qbtns"></div>
-        <label for="selTag">แท็กที่เคยใช้ (เลือกเพื่อกรอกให้อัตโนมัติ)</label>
+        <label for="selTag">แท็กที่เคยใช้ (เลือกเพื่อเพิ่มลงช่องด้านล่าง)</label>
         <select id="selTag" onchange="pickTag()"></select>
-        <label for="oTag">แท็กฟาร์มที่จะรับของ (เช่น #P2Y8QLG)</label>
-        <input id="oTag" autocapitalize="characters" autocomplete="off">
-        <p class="muted">บอทจะใช้แท็กนี้ส่งคำขอเป็นเพื่อนในเกม ตรวจแท็กให้ถูกก่อนสั่ง ถ้าพิมพ์ผิดออเดอร์จะส่งไม่สำเร็จ</p>
+        <label for="oTag">แท็กฟาร์มที่จะรับของ (เช่น #P2Y8QLG) — หลายฟาร์มคั่นด้วยเว้นวรรคหรือ ,</label>
+        <input id="oTag" autocapitalize="characters" autocomplete="off" oninput="calc()" placeholder="#P2Y8QLG  #Q8LL2VC">
+        <div id="tagInfo" class="muted"></div>
+        <p class="muted">ใส่หลายแท็ก = ทุกแท็กได้จำนวนเท่ากัน (แยกเป็นออเดอร์ละแท็ก) · บอทใช้แท็กส่งคำขอเป็นเพื่อนในเกม ตรวจให้ถูกก่อนสั่ง ถ้าพิมพ์ผิดออเดอร์จะส่งไม่สำเร็จ</p>
         <div id="priceBox" class="msg info" style="margin-top:14px"></div>
         <div id="orderMsg"></div>
         <button id="bOrder" onclick="doOrder()" style="width:100%">สั่งซื้อ</button>
@@ -327,7 +328,18 @@ function paintMe(){
 }
 function pickTag(){
   const t = ME.tags.find(x => x.tag === $("selTag").value);
-  if (t) $("oTag").value = t.tag;
+  if (!t) return;
+  const cur = tagsIn();
+  if (!cur.some(x => tagKey(x) === tagKey(t.tag))) $("oTag").value = cur.concat([t.tag]).join(" ");
+  $("selTag").value = ""; calc();
+}
+const tagKey = t => String(t || "").toUpperCase().replace(/[#\s]/g, "");
+function tagsIn(){                              // แท็กในช่อง → ["#AAA", "#BBB"] (ตัดซ้ำ)
+  const out = [], seen = {};
+  $("oTag").value.split(/[\s,;]+/).filter(Boolean).forEach(t => {
+    const k = tagKey(t); if (k && !seen[k]) { seen[k] = 1; out.push("#" + k); }
+  });
+  return out;
 }
 let curPage = "order";
 function go(p){
@@ -374,27 +386,41 @@ function calc(){
   q.innerHTML = c ? [500, 1000, 5000, 10000].filter(n => n <= c.available).map(n => '<button class="ghost small" type="button" onclick="setQty(' + n + ')">' + fmt(n) + "</button>").join("") : "";
   $("itemInfo").textContent = c
     ? "มีของพร้อมส่ง " + fmt(c.available) + " ชิ้น · 500 ชิ้น " + fmt(c.p500) + " บาท" + (c.p1000 ? " · 1,000 ชิ้น " + fmt(c.p1000) + " บาท" : "") + (c.p10000 ? " · 10,000 ชิ้น " + fmt(c.p10000) + " บาท" : "") : "";
-  const price = priceOf(c, qty), box = $("priceBox"), btn = $("bOrder");
+  const each = priceOf(c, qty), box = $("priceBox"), btn = $("bOrder");
+  const tags = tagsIn(), n = Math.max(1, tags.length);
+  const bad = tags.filter(t => !/^#[A-Z0-9]{4,12}$/.test(t));
+  $("tagInfo").textContent = tags.length > 1 ? "ส่ง " + tags.length + " ฟาร์ม: " + tags.join(", ") : "";
   if (!c) { box.textContent = "เลือกสินค้า"; btn.disabled = true; return; }
-  if (price == null) { box.textContent = "จำนวนต้องเป็นทวีคูณของ 500"; btn.disabled = true; return; }
-  if (qty > c.available) { box.textContent = "ของเหลือ " + fmt(c.available) + " ชิ้น ลดจำนวนลง"; btn.disabled = true; return; }
+  if (each == null) { box.textContent = "จำนวนต้องเป็นทวีคูณของ 500"; btn.disabled = true; return; }
+  if (bad.length) { box.innerHTML = '<span style="color:var(--bad)">แท็กไม่ถูกต้อง: ' + esc(bad.join(", ")) + "</span>"; btn.disabled = true; return; }
+  if (tags.length > 10) { box.textContent = "สั่งได้ครั้งละไม่เกิน 10 แท็ก"; btn.disabled = true; return; }
+  if (qty * n > c.available) { box.textContent = "ของเหลือ " + fmt(c.available) + " ชิ้น (ต้องใช้ " + fmt(qty * n) + ") ลดจำนวนลง"; btn.disabled = true; return; }
+  const price = Math.round(each * n * 100) / 100;
   const short = price - (ME ? ME.balance : 0);
-  box.innerHTML = "ราคารวม <b>" + fmt(price) + " บาท</b>" + (short > 0 ? ' · <span style="color:var(--bad)">ยอดไม่พอ ขาดอีก ' + fmt(short) + " บาท</span>" : "");
+  box.innerHTML = (n > 1 ? fmt(qty) + " ชิ้น × " + n + " แท็ก · " : "") + "ราคารวม <b>" + fmt(price) + " บาท</b>" +
+    (short > 0 ? ' · <span style="color:var(--bad)">ยอดไม่พอ ขาดอีก ' + fmt(short) + " บาท</span>" : "");
   btn.disabled = short > 0;
   btn.textContent = "สั่งซื้อ · หักเงิน " + fmt(price) + " บาท";
 }
 function setQty(n){ $("qty").value = n; calc(); }
 async function doOrder(){
-  const item = $("selItem").value, qty = parseInt($("qty").value, 10) || 0, tag = $("oTag").value.trim();
-  if (!tag) { note("orderMsg", "ใส่แท็กฟาร์มที่จะรับของก่อน", "err"); return; }
-  const c = CATALOG.find(i => i.item === item), price = priceOf(c, qty);
-  if (price == null) return;
-  if (!confirm("ยืนยันสั่ง " + item + " " + fmt(qty) + " ชิ้น\nส่งให้ " + tag + "\nหักเงิน " + fmt(price) + " บาททันที")) return;
+  const item = $("selItem").value, qty = parseInt($("qty").value, 10) || 0, tags = tagsIn();
+  if (!tags.length) { note("orderMsg", "ใส่แท็กฟาร์มที่จะรับของก่อน", "err"); return; }
+  const c = CATALOG.find(i => i.item === item), each = priceOf(c, qty);
+  if (each == null) return;
+  const price = Math.round(each * tags.length * 100) / 100;
+  if (!confirm("ยืนยันสั่ง " + item + " " + fmt(qty) + " ชิ้น" + (tags.length > 1 ? " ต่อแท็ก (" + tags.length + " แท็ก)" : "") +
+               "\nส่งให้ " + tags.join(", ") + "\nหักเงิน " + fmt(price) + " บาททันที")) return;
   $("bOrder").disabled = true; note("orderMsg", "");
   try {
-    const d = await api("shop_order", {item: item, qty: qty, tag: tag});
+    const d = await api("shop_order", {item: item, qty: qty, tags: tags, tag: tags[0]});
     ME.balance = d.balance; paintMe();
-    note("orderMsg", "สั่งสำเร็จ เลขที่ " + d.orderId + " — รอบอทส่งของ ดูสถานะที่ 'ออเดอร์ของฉัน'", "good");
+    const ids = (d.orders || [{orderId: d.orderId}]).map(o => o.orderId).join(", ");
+    if (!d.orders && tags.length > 1) {         // เว็บหลังบ้านยังเป็นรุ่นเก่า (รับได้แท็กเดียว)
+      d.partial = true; d.error = "ระบบรับได้แค่แท็กแรก (" + tags[0] + ") สั่งแท็กที่เหลือแยกอีกครั้ง";
+    }
+    note("orderMsg", d.partial ? "⚠ " + d.error + " · เลขที่ " + ids
+                               : "สั่งสำเร็จ เลขที่ " + ids + " — รอบอทส่งของ ดูสถานะที่ 'ออเดอร์ของฉัน'", d.partial ? "err" : "good");
     loadCatalog();
   } catch (e) { note("orderMsg", e.message, "err"); }
   calc();
