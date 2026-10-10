@@ -389,7 +389,10 @@ function calc(){
   const each = priceOf(c, qty), box = $("priceBox"), btn = $("bOrder");
   const tags = tagsIn(), n = Math.max(1, tags.length);
   const bad = tags.filter(t => !/^#[A-Z0-9]{4,12}$/.test(t));
-  $("tagInfo").textContent = tags.length > 1 ? "ส่ง " + tags.length + " ฟาร์ม: " + tags.join(", ") : "";
+  $("tagInfo").innerHTML = tags.length > 1
+    ? "ลำดับการส่ง: " + tags.map((t, i) => "<b>" + (i + 1) + ". " + esc(t) + "</b>").join(" → ") +
+      "<br>บอทส่งแท็กแรกก่อน แล้วไล่ตามลำดับ · อยากให้แท็กไหนได้ก่อน ย้ายไปไว้หน้าสุดในช่อง"
+    : "";
   if (!c) { box.textContent = "เลือกสินค้า"; btn.disabled = true; return; }
   if (each == null) { box.textContent = "จำนวนต้องเป็นทวีคูณของ 500"; btn.disabled = true; return; }
   if (bad.length) { box.innerHTML = '<span style="color:var(--bad)">แท็กไม่ถูกต้อง: ' + esc(bad.join(", ")) + "</span>"; btn.disabled = true; return; }
@@ -410,7 +413,8 @@ async function doOrder(){
   if (each == null) return;
   const price = Math.round(each * tags.length * 100) / 100;
   if (!confirm("ยืนยันสั่ง " + item + " " + fmt(qty) + " ชิ้น" + (tags.length > 1 ? " ต่อแท็ก (" + tags.length + " แท็ก)" : "") +
-               "\nส่งให้ " + tags.join(", ") + "\nหักเงิน " + fmt(price) + " บาททันที")) return;
+               (tags.length > 1 ? "\n\nลำดับการส่ง (แท็กแรกได้ก่อน):\n" + tags.map((t, i) => "  " + (i + 1) + ". " + t).join("\n")
+                                : "\nส่งให้ " + tags[0]) + "\n\nหักเงิน " + fmt(price) + " บาททันที")) return;
   $("bOrder").disabled = true; note("orderMsg", "");
   try {
     const d = await api("shop_order", {item: item, qty: qty, tags: tags, tag: tags[0]});
@@ -420,7 +424,9 @@ async function doOrder(){
       d.partial = true; d.error = "ระบบรับได้แค่แท็กแรก (" + tags[0] + ") สั่งแท็กที่เหลือแยกอีกครั้ง";
     }
     note("orderMsg", d.partial ? "⚠ " + d.error + " · เลขที่ " + ids
-                               : "สั่งสำเร็จ เลขที่ " + ids + " — รอบอทส่งของ ดูสถานะที่ 'ออเดอร์ของฉัน'", d.partial ? "err" : "good");
+                               : "สั่งสำเร็จ เลขที่ " + ids + (d.orders && d.orders.length > 1
+                                   ? " — ส่งตามลำดับ: " + d.orders.map((o, i) => (i + 1) + ". " + o.tag).join(" → ")
+                                   : "") + " — ดูคิวที่ 'ออเดอร์ของฉัน'", d.partial ? "err" : "good");
     loadCatalog();
   } catch (e) { note("orderMsg", e.message, "err"); }
   calc();
@@ -437,7 +443,7 @@ async function loadOrders(silent){
     ? '<div class="msg" style="background:color-mix(in srgb,var(--accent) 22%,transparent)"><b>👉 ' + esc(act[0].message) + "</b></div>"
     : qd ? '<div class="msg info">🕒 ' + queueText(qd) + "</div>" : "";
   if (silent) return;
-  $("ordersBox").innerHTML = list.length ? list.map(o => {
+  $("ordersBox").innerHTML = tagOrderCard(list) + (list.length ? list.map(o => {
     const pct = o.qty ? Math.min(100, Math.round(o.delivered * 100 / o.qty)) : 0;
     const cls = o.status === "done" ? "ok" : (o.status === "cancelled" || o.status === "problem") ? "bad" : "warn";
     return '<div class="card order"><div class="head"><b>' + esc(o.item) + " × " + fmt(o.qty) + '</b><span class="pill ' + cls + '">' + esc(o.statusTh) + "</span></div>" +
@@ -445,7 +451,26 @@ async function loadOrders(silent){
       '<div class="bar"><i style="width:' + pct + '%"></i></div><div class="muted">ส่งแล้ว ' + fmt(o.delivered) + " / " + fmt(o.qty) + " ชิ้น</div>" +
       (o.status === "queued" && o.queuePos != null ? '<div class="qpos">' + queueText(o) + "</div>" : "") +
       (o.message ? '<div style="margin-top:8px">' + esc(o.message) + "</div>" : "") + "</div>";
-  }).join("") : '<div class="card muted">ยังไม่มีออเดอร์</div>';
+  }).join("") : '<div class="card muted">ยังไม่มีออเดอร์</div>');
+}
+// ลูกค้ามีหลายแท็กค้างส่ง → บอกว่าแท็กไหนได้ก่อน (บอทส่งทีละแท็กตามคิว)
+function tagOrderCard(list){
+  const SERV = ["working", "wait_accept", "listing"], by = {};
+  list.forEach(o => {
+    if (o.status !== "queued" && SERV.indexOf(o.status) < 0) return;
+    const k = String(o.tag || "").toUpperCase();
+    const r = SERV.indexOf(o.status) >= 0 ? 0 : (o.queuePos == null ? 9999 : o.queuePos);
+    const cur = by[k] || (by[k] = {tag: o.tag, r: r, st: "", n: 0});
+    cur.n += 1;
+    if (r < cur.r) cur.r = r;
+    if (SERV.indexOf(o.status) >= 0) cur.st = o.statusTh;          // แท็กที่บอทกำลังทำ → โชว์สถานะจริง
+  });
+  const rows = Object.values(by).sort((a, b) => a.r - b.r);
+  if (rows.length < 2) return "";
+  return '<div class="card"><h2>ลำดับส่งแท็กของคุณ</h2><ol style="margin:0;padding-left:22px">' + rows.map(x =>
+    "<li><b>" + esc(x.tag) + "</b> — " + (x.r === 0 ? "<b>" + esc(x.st || "ถึงคิวแล้ว") + "</b>" : x.r === 9999 ? "รอคิว" : "คิวที่ " + x.r) +
+    (x.n > 1 ? ' <span class="muted">(' + x.n + " ออเดอร์)</span>" : "") + "</li>").join("") +
+    '</ol><div class="muted" style="margin-top:6px">บอทส่งทีละแท็กตามลำดับนี้ · ถ้าแท็กไหนไม่กดรับเพื่อนใน 5 นาที แท็กนั้นจะถูกย้ายไปท้ายคิว</div></div>';
 }
 function queueText(o){
   if (o.queuePos === 0) return "<b>ถึงคิวคุณแล้ว</b> — บอทกำลังส่งออเดอร์อื่นของคุณอยู่ ออเดอร์นี้ส่งต่อทันที";
