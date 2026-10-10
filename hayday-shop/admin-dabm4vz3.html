@@ -58,6 +58,7 @@ table{width:100%;border-collapse:collapse;font-size:.88rem} td,th{padding:6px 5p
       <button id="t_top" class="on" onclick="tab('top')">คำขอเติมเงิน <span id="nPend"></span></button>
       <button id="t_usr" onclick="tab('usr')">ลูกค้า</button>
       <button id="t_led" onclick="tab('led')">เงินเข้า-ออก</button>
+      <button id="t_gift" onclick="tab('gift')">🎁 เครดิตฟรี</button>
       <button id="t_set" onclick="tab('set')">ตั้งค่าร้าน</button>
     </div>
     <div id="gmsg"></div>
@@ -80,6 +81,43 @@ table{width:100%;border-collapse:collapse;font-size:.88rem} td,th{padding:6px 5p
     </section>
 
     <section id="p_led" class="hide"><div class="card"><h2>รายการเงินเข้า-ออกล่าสุด</h2><div class="scroll" id="ledBox"></div></div></section>
+
+    <section id="p_gift" class="hide">
+      <div class="card">
+        <h2>🎁 โปรสมัครใหม่ — สมัครในช่วงเวลานี้ได้เครดิตฟรีทันที</h2>
+        <div id="sbState" class="muted" style="margin-bottom:8px"></div>
+        <div class="row">
+          <label class="fit" style="display:flex;gap:6px;align-items:center"><input id="sbOn" type="checkbox" style="width:auto"> เปิดโปร</label>
+          <div><label class="muted">เครดิตต่อคน (บาท)</label><input id="sbAmt" type="number" min="1" step="1" inputmode="decimal"></div>
+          <div><label class="muted">จำกัดจำนวนคน (0 = ไม่จำกัด)</label><input id="sbMax" type="number" min="0" step="1" inputmode="numeric"></div>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <div><label class="muted">เริ่ม (เว้นว่าง = ตั้งแต่ตอนนี้)</label><input id="sbFrom" type="datetime-local"></div>
+          <div><label class="muted">สิ้นสุด (เว้นว่าง = ไม่มีวันหมด)</label><input id="sbTo" type="datetime-local"></div>
+        </div>
+        <div style="margin-top:10px"><button onclick="saveSignup()">บันทึกโปรสมัครใหม่</button></div>
+        <p class="muted">ลูกค้าเห็นข้อความ "สมัครตอนนี้รับเครดิตฟรี" ในหน้าสมัคร · เปลี่ยนจำนวนเงินหรือช่วงเวลา = เริ่มนับคนใหม่ · ควรจำกัดจำนวนคน กันคนสมัครหลายบัญชีเอาเครดิต</p>
+      </div>
+      <div class="card">
+        <h2>🎁 แจกเครดิตลูกค้าที่อยู่ในระบบแล้ว</h2>
+        <div class="row">
+          <div><label class="muted">ให้ใคร</label>
+            <select id="grScope" onchange="grScopeUI()">
+              <option value="all">ลูกค้าทั้งหมด</option>
+              <option value="range">ลูกค้าที่สมัครในช่วงวันที่</option>
+            </select></div>
+          <div><label class="muted">เครดิตต่อคน (บาท)</label><input id="grAmt" type="number" min="1" step="1" inputmode="decimal"></div>
+        </div>
+        <div class="row hide" id="grRange" style="margin-top:8px">
+          <div><label class="muted">สมัครตั้งแต่ (เว้นว่าง = ไม่จำกัด)</label><input id="grFrom" type="date"></div>
+          <div><label class="muted">ถึง (เว้นว่าง = ถึงตอนนี้)</label><input id="grTo" type="date"></div>
+        </div>
+        <label class="muted" style="display:block;margin-top:8px">ข้อความที่ลูกค้าเห็นในประวัติเงิน</label>
+        <input id="grNote" maxlength="80" placeholder="เครดิตฟรีจากร้าน">
+        <div style="margin-top:10px"><button onclick="grant(true)">ดูก่อนว่าได้กี่คน</button></div>
+        <div id="grPrev"></div>
+      </div>
+    </section>
 
     <section id="p_set" class="hide">
       <div class="card">
@@ -134,7 +172,7 @@ async function refresh(){
   paint();
 }
 function tab(t){
-  ["top", "usr", "led", "set"].forEach(k => { $("p_" + k).classList.toggle("hide", k !== t); $("t_" + k).classList.toggle("on", k === t); });
+  ["top", "usr", "led", "gift", "set"].forEach(k => { $("p_" + k).classList.toggle("hide", k !== t); $("t_" + k).classList.toggle("on", k === t); });
 }
 function paint(){
   const pend = DATA.topups.filter(t => t.status === "pending");
@@ -150,7 +188,7 @@ function paint(){
   $("usrBox").innerHTML = DATA.users.length ? "<table><tr><th>ผู้ใช้</th><th>แท็ก</th><th class='num'>ยอดเงิน</th><th>เข้าล่าสุด</th></tr>" +
     DATA.users.map(u => "<tr><td><b>" + esc(u.username) + "</b><div class='muted'>" + esc(u.display) + "</div></td><td>" +
       u.tags.map(t => esc(t.tag) + " <span class='muted'>" + esc(t.name) + "</span>").join("<br>") + "</td><td class='num'>" + fmt(u.balance) + "</td><td>" + esc(u.lastLogin) + "</td></tr>").join("") + "</table>" : '<div class="muted">ยังไม่มีลูกค้า</div>';
-  const ty = {topup: "เติมเงิน", order: "สั่งของ", refund: "คืนเงิน", adjust: "ปรับยอด"};
+  const ty = {topup: "เติมเงิน", order: "สั่งของ", refund: "คืนเงิน", adjust: "ปรับยอด", bonus: "เครดิตฟรี"};
   $("ledBox").innerHTML = DATA.ledger.length ? "<table><tr><th>เวลา</th><th>ผู้ใช้</th><th>ประเภท</th><th class='num'>จำนวน</th><th class='num'>คงเหลือ</th><th>อ้างอิง</th></tr>" +
     DATA.ledger.map(l => "<tr><td>" + esc(l.time.slice(5, 16)) + "</td><td>" + esc(l.username) + "</td><td>" + esc(ty[l.type] || l.type) + (l.note ? "<div class='muted'>" + esc(l.note) + "</div>" : "") +
       "</td><td class='num' style='color:" + (l.amount >= 0 ? "var(--ok)" : "var(--bad)") + "'>" + (l.amount >= 0 ? "+" : "") + fmt(l.amount) + "</td><td class='num'>" + fmt(l.balance) + "</td><td>" + esc(l.ref) + "</td></tr>").join("") + "</table>" : '<div class="muted">ยังไม่มี</div>';
@@ -160,6 +198,7 @@ function paint(){
   if (document.activeElement !== $("sContact")) $("sContact").value = DATA.contact || "";
   if (document.activeElement !== $("sRcv")) $("sRcv").value = DATA.receiverName || "";
   try { $("tLast").textContent = DATA.thunderLast ? JSON.stringify(JSON.parse(DATA.thunderLast), null, 2) : "ยังไม่มี"; } catch (e) { $("tLast").textContent = DATA.thunderLast || "ยังไม่มี"; }
+  paintSignup();
   $("sKeyState").textContent = DATA.hasThunderKey ? "✔ ตั้งคีย์แล้ว (ตรวจอัตโนมัติเปิดอยู่)" : "ยังไม่ได้ตั้ง (สลิปจะรอแอดมินตรวจ)";
 }
 async function decide(id, approve){
@@ -184,6 +223,52 @@ async function saveSet(){
       promptpay: $("sPP").value, contact: $("sContact").value, receiverName: $("sRcv").value, thunderKey: $("sKey").value.trim()}); $("sKey").value = ""; msg("gmsg", "บันทึกแล้ว", "good"); await refresh(); }
   catch (e) { msg("gmsg", e.message); }
 }
+/* ---------- เครดิตฟรี ---------- */
+const toLocal = s => s ? String(s).slice(0, 16).replace(" ", "T") : "";
+function paintSignup(){
+  const c = DATA.signupBonus || {};
+  if (!["sbAmt", "sbMax", "sbFrom", "sbTo"].includes(document.activeElement && document.activeElement.id)) {
+    $("sbOn").checked = !!c.on; $("sbAmt").value = c.amount || ""; $("sbMax").value = c.max || 0;
+    $("sbFrom").value = toLocal(c.from); $("sbTo").value = toLocal(c.to);
+  }
+  $("sbState").innerHTML = c.on
+    ? "สถานะ: <b>เปิดอยู่</b> · " + fmt(c.amount) + " บาท/คน · แจกไปแล้ว " + (c.given || 0) + (c.max ? " / " + c.max : "") + " คน" +
+      (c.from ? " · เริ่ม " + esc(c.from.slice(0, 16)) : "") + (c.to ? " · ถึง " + esc(c.to.slice(0, 16)) : "")
+    : "สถานะ: ปิดอยู่" + (c.given ? " (โปรล่าสุดแจกไป " + c.given + " คน)" : "");
+}
+async function saveSignup(){
+  try {
+    const d = await call("shop_admin_signup_bonus", {on: $("sbOn").checked, amount: $("sbAmt").value, max: $("sbMax").value,
+                                                     from: $("sbFrom").value, to: $("sbTo").value});
+    DATA.signupBonus = d.signupBonus; paintSignup(); msg("gmsg", "บันทึกโปรสมัครใหม่แล้ว", "good");
+  } catch (e) { msg("gmsg", e.message); }
+}
+function grScopeUI(){ $("grRange").classList.toggle("hide", $("grScope").value !== "range"); $("grPrev").innerHTML = ""; GRANT_ID = ""; }
+let GRANT_ID = "";
+function grantParams(){
+  const r = $("grScope").value === "range";
+  return {amount: $("grAmt").value, from: r ? $("grFrom").value : "", to: r ? $("grTo").value : "", note: $("grNote").value};
+}
+async function grant(dry){
+  try {
+    if (dry || !GRANT_ID) GRANT_ID = "G" + Date.now().toString(36).toUpperCase();
+    const p = Object.assign(grantParams(), {grantId: GRANT_ID, dryRun: !!dry});
+    if (!dry && !confirm("แจกเครดิต " + fmt(p.amount) + " บาท ให้ลูกค้าตามที่ดูไว้?\nกดแล้วยกเลิกไม่ได้ (ถ้าต้องการหักคืน ใช้ 'ปรับยอด' ทีละคน)")) return;
+    const d = await call("shop_admin_grant", p);
+    if (dry) {
+      $("grPrev").innerHTML = d.count
+        ? '<div class="msg good">จะแจก <b>' + d.count + "</b> คน · คนละ " + fmt(d.amount) + " บาท · รวม <b>" + fmt(d.total) + " บาท</b><div class='muted'>เช่น " +
+          esc(d.sample.join(", ")) + (d.count > d.sample.length ? " …" : "") + "</div></div><button onclick='grant(false)'>✅ ยืนยันแจกเลย</button>"
+        : '<div class="msg err">ไม่มีลูกค้าตรงเงื่อนไข</div>';
+    } else {
+      $("grPrev").innerHTML = ""; GRANT_ID = "";
+      msg("gmsg", "แจกแล้ว " + d.count + " คน รวม " + fmt(d.total) + " บาท" + (d.already ? " (ข้าม " + d.already + " คนที่ได้ไปแล้ว)" : ""), "good");
+      await refresh();
+    }
+  } catch (e) { msg("gmsg", e.message); }
+}
+["grAmt", "grFrom", "grTo"].forEach(id => $(id).addEventListener("input", () => { $("grPrev").innerHTML = ""; GRANT_ID = ""; }));
+
 async function testThunder(){
   msg("tmsg", "กำลังทดสอบ...", "good");
   try { const d = await call("shop_admin_thunder_test", {}); msg("tmsg", d.result, /ใช้งานได้/.test(d.result) ? "good" : "err"); await refresh(); }

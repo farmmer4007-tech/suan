@@ -112,6 +112,7 @@ td,th{padding:7px 4px;border-bottom:1px solid var(--line);text-align:left;vertic
       <div style="margin-top:12px"><button type="submit" id="bLogin">เข้าสู่ระบบ</button></div>
     </form>
     <form id="fReg" class="hide" onsubmit="return doRegister(event)">
+      <div id="promoReg"></div>
       <label for="ru">ชื่อผู้ใช้ (a-z 0-9 _ ยาว 3-20)</label><input id="ru" autocomplete="username" autocapitalize="none" required>
       <label for="rp">รหัสผ่าน (อย่างน้อย 6 ตัว)</label><input id="rp" type="password" autocomplete="new-password" minlength="6" required>
       <label for="rd">ชื่อเรียก (ไม่ใส่ก็ได้)</label><input id="rd" maxlength="30">
@@ -252,6 +253,8 @@ async function boot(){
     const d = await api("shop_info");
     SHOP.payInfo = d.payInfo || "";
     SHOP.promptpay = d.promptpay || ""; SHOP.autoSlip = !!d.autoSlip; SHOP.contact = d.contact || "";
+    SHOP.signupBonus = d.signupBonus || null;
+    paintPromo();
     if (d.shopName) { $("shopName").textContent = "🌾 " + d.shopName; document.title = d.shopName; }
   } catch (e) { show("vAuth", true); note("authMsg", e.message, "err"); return; }
   TOKEN = load("hd_token");
@@ -283,8 +286,18 @@ async function doRegister(ev){
   try {
     const d = await api("shop_register", {username: $("ru").value, password: $("rp").value, display: $("rd").value});
     TOKEN = d.token; ME = d.user; store("hd_token", TOKEN); JUST_REGISTERED = true; enter();
+    if (d.bonus > 0) setTimeout(() => alert("🎁 ได้รับเครดิตฟรี " + d.bonus.toLocaleString() + " บาท เข้ากระเป๋าแล้ว ใช้สั่งของได้เลย"), 400);
   } catch (e) { note("authMsg", e.message, "err"); }
   $("bReg").disabled = false; return false;
+}
+function paintPromo(){
+  const b = SHOP.signupBonus;
+  const box = $("promoReg");
+  if (!box) return;
+  box.innerHTML = b && b.amount > 0
+    ? '<div class="msg good">🎁 สมัครตอนนี้รับเครดิตฟรี <b>' + esc(Number(b.amount).toLocaleString()) + " บาท</b>" +
+      (b.until ? " (ถึง " + esc(String(b.until).slice(0, 16)) + ")" : "") + (b.left != null ? " · เหลือ " + esc(b.left) + " สิทธิ์" : "") + "</div>"
+    : "";
 }
 function sessionEnd(){
   TOKEN = ""; ME = null; store("hd_token", null);
@@ -496,7 +509,7 @@ async function loadWallet(){
     $("topupList").innerHTML = d.topups.length ? d.topups.map(t =>
       '<div class="item"><div><b>' + fmt(t.amount) + ' บาท</b><div class="muted">' + esc(t.id) + " · " + esc(t.time) + (t.note ? " · " + esc(t.note) : "") +
       '</div></div><span class="pill ' + tp[t.status][1] + '">' + tp[t.status][0] + "</span></div>").join("") : '<div class="muted">ยังไม่มี</div>';
-    const ty = {topup: "เติมเงิน", order: "สั่งของ", refund: "คืนเงิน", adjust: "ปรับยอด"};
+    const ty = {topup: "เติมเงิน", order: "สั่งของ", refund: "คืนเงิน", adjust: "ปรับยอด", bonus: "เครดิตฟรี"};
     $("ledgerList").innerHTML = d.ledger.length ? "<table>" + d.ledger.map(l =>
       "<tr><td>" + esc(l.time.slice(5, 16)) + "<div class='muted'>" + esc(ty[l.type] || l.type) + (l.note ? " · " + esc(l.note) : "") + "</div></td>" +
       '<td class="num" style="color:' + (l.amount >= 0 ? "var(--ok)" : "var(--bad)") + '">' + (l.amount >= 0 ? "+" : "") + fmt(l.amount) +
